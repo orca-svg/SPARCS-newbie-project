@@ -1,0 +1,155 @@
+// backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"      
+  url      = env("DATABASE_URL")
+}
+
+//enum
+
+// 전체 유저 역할
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// 동아리 내 권한
+enum ClubMemberRole {
+  LEADER
+  WRITER
+  READER
+}
+
+// 동아리 내 등급
+enum MemberTier {
+  JUNIOR
+  SENIOR
+  MANAGER
+}
+
+// 게시글 가시권한
+enum PostVisibility {
+  ALL
+  JUNIOR
+  SENIOR
+  MANAGER
+}
+
+// Table
+
+model User {
+  id         Int        @id @default(autoincrement())
+  email      String     @unique
+  password   String
+  name       String
+  role       UserRole   @default(USER)
+
+  clubs      ClubMember[]
+  posts      Post[]
+  comments   Comment[]
+  readStatus ReadStatus[]
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Club {
+  id          Int          @id @default(autoincrement())
+  name        String
+  description String?
+
+  members     ClubMember[]
+  posts       Post[]
+  schedules   Schedule[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model ClubMember {
+  id        Int            @id @default(autoincrement())
+  userId    Int
+  clubId    Int
+  approved  Boolean        @default(false)
+
+  role      ClubMemberRole @default(READER)
+  tier      MemberTier     @default(JUNIOR)
+
+  user      User @relation(fields: [userId], references: [id])
+  club      Club @relation(fields: [clubId], references: [id])
+
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([userId, clubId])
+}
+
+model Post {
+  id          Int            @id @default(autoincrement())
+  title       String
+  content     String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  userId      Int
+  clubId      Int
+
+  visibility  PostVisibility @default(ALL)
+
+  user        User           @relation(fields: [userId], references: [id])
+  club        Club           @relation(fields: [clubId], references: [id])
+
+  comments    Comment[]
+  readStatus  ReadStatus[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    Int
+  postId    Int
+
+  user      User @relation(fields: [userId], references: [id])
+  post      Post @relation(fields: [postId], references: [id])
+}
+
+model Schedule {
+  id        Int          @id @default(autoincrement())
+  title     String
+  date      DateTime
+  content   String?
+
+  clubId    Int
+  club      Club         @relation(fields: [clubId], references: [id])
+  tags      ScheduleTag[]
+
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model ScheduleTag {
+  id          Int       @id @default(autoincrement())
+  name        String
+
+  scheduleId  Int
+  schedule    Schedule  @relation(fields: [scheduleId], references: [id])
+}
+
+model ReadStatus {
+  id      Int      @id @default(autoincrement())
+  userId  Int
+  postId  Int
+  isRead  Boolean  @default(false)
+
+  user    User @relation(fields: [userId], references: [id])
+  post    Post @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId])
+}
