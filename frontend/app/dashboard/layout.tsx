@@ -10,7 +10,10 @@ interface Club {
   id: number;
   name: string;
   description?: string | null;
+  role?: "LEADER" | "WRITER" | "READER";
+  tier?: "JUNIOR" | "SENIOR" | "MANAGER";
 }
+
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();

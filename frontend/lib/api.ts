@@ -4,7 +4,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api";
 
 /**
- * 기본 API 요청 함수 (토큰 필요 없음)
+ * 기본 API 요청 함수
  */
 export async function apiRequest<T>(
   path: string,

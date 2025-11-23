@@ -38,6 +38,7 @@ export default function LoginPage() {
       if (typeof window !== "undefined") {
         localStorage.setItem("token", data.token);
         localStorage.setItem("userName", data.user.name);
+        localStorage.setItem("userRole", data.user.role);
       }
 
       router.push("/dashboard");

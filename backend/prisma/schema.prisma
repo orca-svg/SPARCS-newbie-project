@@ -25,13 +25,6 @@ enum ClubMemberRole {
   READER
 }
 
-// 동아리 가입 상태
-enum status {
-  PENDING
-  ACCEPTED
-  DENIED
-}
-
 // 동아리 내 등급
 enum MemberTier {
   JUNIOR
