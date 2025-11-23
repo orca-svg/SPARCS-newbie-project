@@ -196,6 +196,30 @@ export class ClubService {
 
     return { success: true };
   }
+static async createClub(input: { // 동아리 생성 -> 최초 생성 시 생성자가 리더로 자동 가입 
+  name: string;
+  description?: string | null;
+  creatorUserId: number;
+}): Promise<Club> {
+  const { name, description, creatorUserId } = input;
+
+  const club = await prisma.club.create({
+    data: {
+      name,
+      description: description ?? null,
+      members: {
+        create: {
+          userId: creatorUserId,
+          approved: true,
+          role: "LEADER",
+          tier: "MANAGER",
+        },
+      },
+    },
+  });
+
+    return club;
+  }
 }
 
 export default ClubService;

@@ -20,11 +20,20 @@ interface MyClub {
   tier: "JUNIOR" | "SENIOR" | "MANAGER";
 }
 
+interface RecentPost {
+  id: number;
+  title: string;
+  createdAt: string;
+  commentCount: number;
+  viewCount: number;
+}
+
 type JoinStatus = "unknown" | "joined" | "not-joined";
 
 export default function ClubDetailPage() {
   const params = useParams<{ clubId: string }>();
   const router = useRouter();
+  const clubId = params.clubId;
   const { user } = useAuth({ required: true }); // user.role 사용
 
   const clubIdNumber = Number(params.clubId);
@@ -38,9 +47,33 @@ export default function ClubDetailPage() {
   const [joinMessage, setJoinMessage] = useState<string | null>(null);
   const [joinLoading, setJoinLoading] = useState(false);
 
+  const [recentPosts, setRecentPosts] = useState<RecentPost[]>([]);
+  const [recentLoading, setRecentLoading] = useState(false);
+  
+  useEffect(() => {
+  if (!clubIdNumber || Number.isNaN(clubIdNumber)) return;
+
+  const fetchRecent = async () => {
+    setRecentLoading(true);
+    try {
+      const data = await authApiRequest<{ posts: RecentPost[] }>(
+        `/clubs/${clubIdNumber}/posts`,
+      );
+      // 최신 글 3개까지만 사용
+      setRecentPosts((data.posts ?? []).slice(0, 3));
+    } catch (e) {
+      console.error("최근 게시글을 가져오지 못했습니다.", e);
+    } finally {
+      setRecentLoading(false);
+    }
+  };
+
+  fetchRecent();
+}, [clubIdNumber]);
+
   useEffect(() => {
     if (!clubIdNumber || Number.isNaN(clubIdNumber)) return;
-
+    
     const fetchData = async () => {
       try {
         // 1) 클럽 정보 + 2) 내가 가입한 클럽 목록을 동시에 조회
@@ -98,6 +131,8 @@ export default function ClubDetailPage() {
       setJoinLoading(false);
     }
   };
+
+  
 
   if (loading) {
     return (
@@ -199,11 +234,101 @@ export default function ClubDetailPage() {
             <div className="panel-title">동아리 공지</div>
             <div className="card-body">이 동아리의 공지 글 목록 자리</div>
           </div>
-
+          
           <div className="right-card">
-            <div className="panel-title">게시글</div>
-            <div className="card-body">게시판/글 목록이 들어올 자리</div>
+          <div className="panel-title">게시글</div>
+          <div className="card-body">
+            {/* 로딩 상태 */}
+            {recentLoading && (
+              <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                게시글을 불러오는 중...
+              </div>
+            )}
+
+            {/* 게시글이 없을 때 */}
+            {!recentLoading && recentPosts.length === 0 && (
+              <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                아직 게시글이 없습니다.
+              </div>
+            )}
+
+            {/* 최근 게시글 목록 */}
+            {!recentLoading && recentPosts.length > 0 && (
+              <ul
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  marginBottom: 8,
+                }}
+              >
+                {recentPosts.map((post) => (
+                  <li key={post.id}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          `/dashboard/clubs/${clubIdNumber}/posts/${post.id}`,
+                        )
+                      }
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        fontSize: 13,
+                        padding: "4px 6px",
+                        borderRadius: 8,
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 500,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {post.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "#9ca3af",
+                          marginTop: 2,
+                        }}
+                      >
+                        {new Date(post.createdAt).toLocaleDateString()} · 댓글{" "}
+                        {post.commentCount} · 조회 {post.viewCount}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* 전체 게시판으로 이동 */}
+            <button
+              type="button"
+              onClick={() =>
+                router.push(`/dashboard/clubs/${clubIdNumber}/posts`)
+              }
+              style={{
+                padding: "6px 10px",
+                borderRadius: 999,
+                border: "1px solid #0f172a",
+                background: "#0f172a",
+                color: "#fff",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              게시판 열기 / 새 글 작성
+            </button>
           </div>
+        </div>
+
 
           <div className="right-card">
             <div className="panel-title">멤버</div>

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Post` ADD COLUMN `authorTier` ENUM('JUNIOR', 'SENIOR', 'MANAGER') NULL;

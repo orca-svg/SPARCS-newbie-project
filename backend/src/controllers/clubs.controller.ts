@@ -104,7 +104,7 @@ export class ClubController {
 
       return res.json({ requests });
     } catch (e: any) {
-      // 권한 문제 등은 403으로 보는 게 자연스러움
+      // 권한 문제  403 처리
       return res.status(403).json({
         message: e.message ?? "가입 요청 목록을 가져오지 못했습니다.",
       });
@@ -168,6 +168,32 @@ export class ClubController {
       return res.status(400).json({
         message: e.message ?? "가입 거절에 실패했습니다.",
       });
+    }
+  }
+  // POST /api/clubs
+  static async create(req: AuthRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "로그인이 필요합니다." });
+      }
+
+      const { name, description } = req.body ?? {};
+
+      if (!name || typeof name !== "string") {
+        return res.status(400).json({ message: "동아리 이름은 필수입니다." });
+      }
+
+      const club = await ClubService.createClub({
+        name,
+        description,
+        creatorUserId: req.user.userId,
+      });
+
+      return res.status(201).json({ club });
+    } catch (e: any) {
+      return res
+        .status(400)
+        .json({ message: e.message ?? "동아리를 생성하지 못했습니다." });
     }
   }
 }

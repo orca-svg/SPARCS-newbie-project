@@ -37,4 +37,8 @@ router.post(
   ClubController.rejectMember,
 );
 
+// 동아리 생성
+router.post("/", authMiddleware, ClubController.create);
+
+
 export default router;

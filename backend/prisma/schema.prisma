@@ -100,12 +100,15 @@ model Post {
   clubId      Int
 
   visibility  PostVisibility @default(ALL)
+  viewCount   Int            @default(0)
+
 
   user        User           @relation(fields: [userId], references: [id])
   club        Club           @relation(fields: [clubId], references: [id])
 
   comments    Comment[]
   readStatus  ReadStatus[]
+  authorTier  MemberTier?
 }
 
 model Comment {

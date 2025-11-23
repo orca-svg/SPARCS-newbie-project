@@ -119,6 +119,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               ))}
             </ul>
           )}
+
+          <button type="button" className="sidebar-item sidebar-item--club" style={{ marginTop: 8 }}
+            onClick={() => router.push("/dashboard/clubs")}
+            >
+              + 동아리 가입하기
+          </button>
         </nav>
 
         <div className="sidebar-footer">

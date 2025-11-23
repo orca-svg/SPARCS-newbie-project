@@ -6,7 +6,7 @@ import clubsRouter from "./clubs.route.ts";
 
 const router = Router();
 
-router.use("/posts", postsRouter);
+router.use("/", postsRouter);
 router.use("/auth", authRouter);
 router.use("/clubs", clubsRouter);
 
