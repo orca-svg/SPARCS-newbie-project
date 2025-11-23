@@ -56,21 +56,18 @@ export class AuthController {
 
   // GET /api/auth/me
   static async me(req: AuthRequest, res: Response) {
-    if (!req.user) {
-      return res.status(401).json({ message: "인증되지 않았습니다." });
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "인증이 필요합니다." });
+      }
+
+      const me = await AuthService.getMe(req.user.userId);
+
+      return res.json({ user: me });
+    } catch (e: any) {
+      return res.status(400).json({
+        message: e.message ?? "내 정보 조회에 실패했습니다.",
+      });
     }
-
-    const me = await AuthService.getMe(req.user.userId);
-
-    if (!me) {
-      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
-    }
-
-    return res.json({
-      id: me.id,
-      email: me.email,
-      name: me.name,
-      role: me.role,
-    });
   }
 }

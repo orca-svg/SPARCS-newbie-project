@@ -1,43 +1,205 @@
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* 인증 페이지 공통 스타일 */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 32px 28px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.auth-title {
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 24px;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.no-scrollbar {
-  -ms-overflow-style: none;
-  /* IE/Edge */
-  scrollbar-width: none;
-  /* Firefox */
+.auth-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 4px;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  /* Chrome/Safari */
-  display: none;
+.auth-input {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
 }
 
-.main-page-block-shadow {
-  border-radius: 16px;
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.10);
+.auth-input:focus {
+  outline: none;
+  border-color: #222;
+}
+
+.auth-error {
+  color: #e6492d;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.auth-button {
+  margin-top: 8px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background: #222;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.auth-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.auth-footer {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #555;
+}
+
+.auth-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+.dashboard-root {
+  min-height: 100vh;
+  display: flex;
+  background: #f7f3e9;
+}
+
+/* 사이드바 */
+.dashboard-sidebar {
+  width: 220px;
+  border-right: 1px solid #e3ded1;
+  background: #fbf7ee;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  border-bottom: 1px solid #e3ded1;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 12px 24px;
+}
+
+.sidebar-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #8b8372;
+  margin-bottom: 6px;
+}
+
+.sidebar-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 8px 10px;
+  font-size: 13px;
+  margin-bottom: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-item:hover {
+  background: #f0e8d9;
+  border-color: #e0d3bd;
+}
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid #e3ded1;
+  font-size: 11px;
+  color: #8b8372;
+}
+
+/* 메인 영역 */
+.dashboard-main {
+  flex: 1;
+  padding: 20px;
+}
+
+/* 내부 레이아웃 */
+.dashboard-content {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(260px, 0.9fr);
+  gap: 16px;
+  height: calc(100vh - 40px);
+}
+
+/* 캘린더 패널 */
+.dashboard-calendar {
+  background: #fdfbf5;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.calendar-box {
+  flex: 1;
+  border-radius: 10px;
+  border: 1px dashed #d4c9b6;
+  background: #f8f2e5;
+}
+
+/* 오른쪽 카드 영역 */
+.dashboard-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.right-card {
+  background: #fdfbf5;
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 80px;
+}
+
+.card-body {
+  font-size: 12px;
+  color: #6b6457;
+  margin-top: 4px;
 }

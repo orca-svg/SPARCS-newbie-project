@@ -7,6 +7,7 @@ interface RegisterInput {
   email: string;
   password: string;
   name: string;
+  clubs?: string[];
 }
 
 interface LoginInput {
@@ -34,7 +35,7 @@ export class AuthService {
         email,
         password: hashed,
         name,
-        role: "USER", // UserRole enum과 일치
+        role: "USER", // UserRole
       },
     });
 
@@ -70,9 +71,22 @@ export class AuthService {
   }
 
   // 나중에 "내 정보" 조회용
-  static async getMe(userId: number): Promise<User | null> {
-    return prisma.user.findUnique({
+   static async getMe(userId: number) {
+    const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+      },
     });
+
+    if (!user) {
+      throw new Error("사용자를 찾을 수 없습니다.");
+    }
+
+    return user;
   }
 }
