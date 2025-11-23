@@ -1,27 +1,34 @@
-import { Request, Response, NextFunction } from "express";
+// src/middleware/auth.ts
+import type { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/jwt.ts";
+import type { JwtPayload } from "../utils/jwt.ts";
 
 export interface AuthRequest extends Request {
-  user?: { id: number };
+  user?: JwtPayload;
 }
 
+// Authorization: Bearer <token>
 export const authMiddleware = (
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Unauthorized" });
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "토큰이 없습니다." });
   }
 
-  const token = authHeader.split(" ")[1];
+  const [scheme, token] = authHeader.split(" ");
+  if (scheme !== "Bearer" || !token) {
+    return res.status(401).json({ message: "올바르지 않은 토큰 형식입니다." });
+  }
 
   try {
     const payload = verifyToken(token);
-    req.user = { id: payload.userId };
+    req.user = payload;
     next();
-  } catch (e) {
-    return res.status(401).json({ message: "Invalid token" });
+  } catch {
+    return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
   }
 };

@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development node --env-file=.env --watch src/server.ts",
+    "dev": "cross-env NODE_ENV=development node --env-file=.env --watch src/index.ts",
     "build": "tsc",
     "format": "prettier --write .",
     "lint": "prettier --check .",
