@@ -96,56 +96,96 @@
 }
 
 /* 사이드바 */
+/* 전체 레이아웃 */
+.dashboard-root {
+  display: flex;
+  min-height: 100vh;
+  background: #f6f0e4;
+}
+
+/* 왼쪽 사이드바 */
 .dashboard-sidebar {
-  width: 220px;
-  border-right: 1px solid #e3ded1;
-  background: #fbf7ee;
+  width: 240px;
+  border-right: 1px solid #e5e7eb;
+  background: #f8f5ec;
   display: flex;
   flex-direction: column;
+  padding: 16px 12px;
+  box-sizing: border-box;
+  overflow-x: hidden; /* 🔹 왼쪽으로 삐져나간 요소는 잘라냄 */
 }
 
+/* 상단 로고/유저 이름 */
 .sidebar-header {
-  padding: 16px;
-  font-size: 18px;
   font-weight: 600;
-  border-bottom: 1px solid #e3ded1;
+  font-size: 24px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* 메뉴 전체 래퍼 */
 .sidebar-nav {
-  flex: 1;
-  padding: 12px 12px 24px;
+  margin-top: 24px;
 }
 
+/* 섹션 제목 (MENU, MY CLUBS) */
 .sidebar-section-title {
   font-size: 11px;
-  text-transform: uppercase;
-  color: #8b8372;
-  margin-bottom: 6px;
+  font-weight: 600;
+  color: #9ca3af;
+  margin: 16px 4px 4px;
 }
 
+/* My Clubs ul */
+.sidebar-club-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* 공통 사이드바 항목 버튼 */
 .sidebar-item {
-  display: block;
   width: 100%;
-  text-align: left;
-  border-radius: 8px;
-  border: 1px solid transparent;
+  display: block;
+  box-sizing: border-box;
+
   padding: 8px 10px;
-  font-size: 13px;
-  margin-bottom: 4px;
+  margin: 2px 0;
+
+  text-align: left;
+  font-size: 14px;
+  color: #374151;
+
   background: transparent;
+  border: none;
+  border-radius: 8px;
+
   cursor: pointer;
 }
 
+/* hover 효과: 사이드바 안에서만 은은하게 */
 .sidebar-item:hover {
-  background: #f0e8d9;
-  border-color: #e0d3bd;
+  background-color: rgba(0, 0, 0, 0.04);
 }
 
+/* placeholder용: 클릭 불가 + hover 없음 */
+.sidebar-item--muted {
+  color: #757b87;
+  cursor: default;
+}
+
+.sidebar-item--muted:hover {
+  background-color: transparent;
+}
+
+/* (필요하면) 동아리 항목만 살짝 다르게 주고 싶을 때 쓰는 클래스 */
+.sidebar-item--club {
+  font-weight: 500
+}
+
+/* 하단 로그아웃 영역 */
 .sidebar-footer {
-  padding: 12px;
-  border-top: 1px solid #e3ded1;
-  font-size: 11px;
-  color: #8b8372;
+  margin-top: auto;
+  padding-top: 12px;
 }
 
 /* 메인 영역 */
