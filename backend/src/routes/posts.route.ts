@@ -29,4 +29,23 @@ router.post(
   PostController.createComment,
 );
 
+//동아리별 게시글 상세 (프론트에서 호출하는 라우트)
+router.get(
+  "/clubs/:clubId/posts/:postId",
+  authMiddleware,
+  PostController.getOne,
+);
+
+router.put(
+  "/clubs/:clubId/posts/:postId",
+  authMiddleware,
+  PostController.update,
+);
+
+router.delete(
+  "/clubs/:clubId/posts/:postId",
+  authMiddleware,
+  PostController.remove,
+);
+
 export default router;

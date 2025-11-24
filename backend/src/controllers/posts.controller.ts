@@ -135,6 +135,62 @@ export class PostController {
         .json({ message: e.message ?? "댓글 작성에 실패했습니다." });
     }
   }
+  static async update(req: AuthRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "로그인이 필요합니다." });
+      }
+
+      const clubId = Number(req.params.clubId);
+      const postId = Number(req.params.postId);
+
+      const { title, content, visibility } = req.body as {
+        title: string;
+        content: string;
+        visibility?: "ALL" | "JUNIOR" | "SENIOR" | "MANAGER";
+      };
+
+      const updated = await PostService.updatePost({
+        postId,
+        clubId,
+        userId: req.user.userId,
+        title,
+        content,
+        visibility,
+      });
+
+      return res.json({ post: updated });
+    } catch (e: any) {
+      console.error(e);
+      return res
+        .status(400)
+        .json({ message: e.message ?? "게시글 수정 중 오류가 발생했습니다." });
+    }
+  }
+
+  static async remove(req: AuthRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "로그인이 필요합니다." });
+      }
+
+      const clubId = Number(req.params.clubId);
+      const postId = Number(req.params.postId);
+
+      const result = await PostService.deletePost({
+        postId,
+        clubId,
+        userId: req.user.userId,
+      });
+
+      return res.json(result);
+    } catch (e: any) {
+      console.error(e);
+      return res
+        .status(400)
+        .json({ message: e.message ?? "게시글 삭제 중 오류가 발생했습니다." });
+    }
+  }
 }
 
 export default PostController;

@@ -216,6 +216,90 @@ export class PostService {
 
     return comment;
   }
+  // 게시글 수정 (작성자 본인만)
+   static async updatePost(input: {
+    postId: number;
+    clubId: number;
+    userId: number;
+    title: string;
+    content: string;
+    visibility?: PostVisibility;
+  }) {
+    const { postId, clubId, userId, title, content, visibility } = input;
+
+    // 동아리 멤버인지 확인 (아니면 에러)
+    await this.ensureClubMember(userId, clubId);
+
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      include: { user: true },
+    });
+
+    if (!post || post.clubId !== clubId) {
+      throw new Error("게시글을 찾을 수 없습니다.");
+    }
+
+    // 작성자 본인인지 확인
+    if (post.userId !== userId) {
+      throw new Error("게시글을 수정할 권한이 없습니다.");
+    }
+
+    const updated = await prisma.post.update({
+      where: { id: postId },
+      data: {
+        title,
+        content,
+        visibility: visibility ?? post.visibility,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    return {
+      id: updated.id,
+      title: updated.title,
+      content: updated.content,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+      viewCount: updated.viewCount,
+      visibility: updated.visibility,
+      clubId: updated.clubId,
+      author: {
+        id: updated.user.id,
+        name: updated.user.name,
+        tier: updated.authorTier ?? null,
+      },
+    };
+  }
+    // 게시글 삭제 (작성자 본인만)
+  static async deletePost(input: {
+    postId: number;
+    clubId: number;
+    userId: number;
+  }) {
+    const { postId, clubId, userId } = input;
+
+    await this.ensureClubMember(userId, clubId);
+
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post || post.clubId !== clubId) {
+      throw new Error("게시글을 찾을 수 없습니다.");
+    }
+
+    if (post.userId !== userId) {
+      throw new Error("게시글을 삭제할 권한이 없습니다.");
+    }
+
+    await prisma.post.delete({
+      where: { id: postId },
+    });
+
+    return { message: "게시글이 삭제되었습니다." };
+  }
 }
 
 export default PostService;
