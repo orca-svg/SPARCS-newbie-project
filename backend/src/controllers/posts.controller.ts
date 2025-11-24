@@ -1,27 +1,60 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.ts";
 import PostService from "../services/posts.service.ts";
+import type { PostListSort } from "../services/posts.service.ts";
 
 export class PostController {
   // GET /api/clubs/:clubId/posts
   static async listByClub(req: AuthRequest, res: Response) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ message: "로그인이 필요합니다." });
-      }
-
-      const clubId = Number(req.params.clubId);
-      if (Number.isNaN(clubId)) {
-        return res.status(400).json({ message: "유효하지 않은 clubId입니다." });
-      }
-
-      const posts = await PostService.listByClub(clubId, req.user.userId);
-      return res.json({ posts });
-    } catch (e: any) {
-      return res
-        .status(400)
-        .json({ message: e.message ?? "게시글 목록을 가져오지 못했습니다." });
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "로그인이 필요합니다." });
     }
+
+    const clubId = Number(req.params.clubId);
+    if (Number.isNaN(clubId)) {
+      return res.status(400).json({ message: "유효하지 않은 clubId입니다." });
+    }
+
+    const page = Math.max(Number(req.query.page ?? "1") || 1, 1);
+    const pageSizeRaw = Number(req.query.pageSize ?? "10") || 10;
+    const pageSize = Math.min(Math.max(pageSizeRaw, 1), 50);
+
+    const sortParam = (req.query.sort as string) ?? "latest";
+    const allowedSort = ["latest", "oldest", "mostViewed"] as const;
+    const sort = allowedSort.includes(sortParam as any)
+      ? (sortParam as (typeof allowedSort)[number])
+      : "latest";
+
+    const q = (req.query.q as string) ?? "";
+    const onlyNotice = (req.query.onlyNotice as string) === "true"; // ✅
+
+    const { items, pagination } = await PostService.listByClub(
+      clubId,
+      req.user.userId,
+      {
+        page,
+        pageSize,
+        sort,
+        query: q.trim() || undefined,
+        onlyNotice,
+      },
+    );
+
+    return res.json({ posts: items, pagination });
+  } catch (e: any) {
+    if (
+      e.message === "해당 동아리의 멤버만 접근할 수 있습니다." ||
+      e.message === "이 동아리 회원만 접근 가능합니다."
+    ) {
+      return res.status(403).json({ message: e.message });
+    }
+
+    console.error(e);
+    return res
+      .status(500)
+      .json({ message: "게시글 목록을 가져오지 못했습니다." });
+  }
   }
 
   // GET /api/posts/:postId
@@ -53,11 +86,12 @@ export class PostController {
       }
 
       const clubId = Number(req.params.clubId);
+      
       if (Number.isNaN(clubId)) {
         return res.status(400).json({ message: "유효하지 않은 clubId입니다." });
       }
 
-      const { title, content, visibility } = req.body ?? {};
+      const { title, content, visibility, isNotice } = req.body ?? {};
 
       if (!title || !content) {
         return res
@@ -65,13 +99,16 @@ export class PostController {
           .json({ message: "title과 content는 필수입니다." });
       }
 
-      const post = await PostService.createPost({
+      const post = await PostService.createPost(
         clubId,
-        userId: req.user.userId,
-        title,
-        content,
-        visibility,
-      });
+        req.user.userId,
+        {
+          title,
+          content,
+          visibility,
+          isNotice: !!isNotice,
+        },
+      );
 
       return res.status(201).json({ post });
     } catch (e: any) {
@@ -144,20 +181,19 @@ export class PostController {
       const clubId = Number(req.params.clubId);
       const postId = Number(req.params.postId);
 
-      const { title, content, visibility } = req.body as {
-        title: string;
-        content: string;
-        visibility?: "ALL" | "JUNIOR" | "SENIOR" | "MANAGER";
-      };
+      const { title, content, visibility, isNotice } = req.body;
 
-      const updated = await PostService.updatePost({
+      const updated = await PostService.updatePost(
         postId,
+        req.user.userId,
         clubId,
-        userId: req.user.userId,
-        title,
-        content,
-        visibility,
-      });
+        {
+          title,
+          content,
+          visibility,
+          isNotice,
+        },
+      );
 
       return res.json({ post: updated });
     } catch (e: any) {

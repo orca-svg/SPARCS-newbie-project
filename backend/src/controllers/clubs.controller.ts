@@ -183,6 +183,17 @@ export class ClubController {
         return res.status(400).json({ message: "동아리 이름은 필수입니다." });
       }
 
+      const normalized = name.trim().toLowerCase();
+      // 중복 이름 확인 (대소문자 구분 없이)
+      const allClubs = await ClubService.listAll();
+      const exists = allClubs?.some(
+        (c: any) => typeof c.name === "string" && c.name.trim().toLowerCase() === normalized,
+      );
+
+      if (exists) {
+        return res.status(409).json({ message: "이미 존재하는 동아리 이름입니다." });
+      }
+
       const club = await ClubService.createClub({
         name,
         description,

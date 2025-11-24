@@ -220,6 +220,8 @@ static async createClub(input: { // 동아리 생성 -> 최초 생성 시 생성
 
     return club;
   }
+
+  
 }
 
 export default ClubService;

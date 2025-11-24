@@ -29,7 +29,7 @@ router.post(
   PostController.createComment,
 );
 
-//동아리별 게시글 상세 (프론트에서 호출하는 라우트)
+//동아리별 게시글 상세 다른 방법 (프론트에서 호출하는 라우트)
 router.get(
   "/clubs/:clubId/posts/:postId",
   authMiddleware,

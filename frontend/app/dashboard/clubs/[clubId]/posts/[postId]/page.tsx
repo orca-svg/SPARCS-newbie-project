@@ -14,6 +14,7 @@ interface PostDetail {
   viewCount: number;
   visibility: "ALL" | "JUNIOR" | "SENIOR" | "MANAGER";
   clubId: number;
+  isNotice: boolean;
   author: {
     id: number;
     name: string;
@@ -47,6 +48,8 @@ export default function PostDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [isNotice, setIsNotice] = useState(false);
+
 
   // dev 모드에서 useEffect 두 번 실행되는 것 방지 (조회수 2 증가 방지)
   const hasFetched = useRef(false);
@@ -83,6 +86,7 @@ export default function PostDetailPage() {
       setPost(res.post);
       setEditTitle(res.post.title);
       setEditContent(res.post.content);
+      setIsNotice(res.post.isNotice); 
     } catch (e: any) {
       setErrorMsg(e.message ?? "게시글을 불러오지 못했습니다.");
     } finally {
@@ -157,7 +161,8 @@ export default function PostDetailPage() {
           body: JSON.stringify({
             title: editTitle,
             content: editContent,
-            visibility: post.visibility, // 기존 값 유지
+            visibility: post.visibility,
+            isNotice,
           }),
         },
       );
@@ -165,7 +170,7 @@ export default function PostDetailPage() {
       setIsEditing(false);
     } catch (e: any) {
       alert(e.message ?? "게시글 수정에 실패했습니다.");
-    }
+    } 
   };
 
   // 게시글 삭제
@@ -317,6 +322,22 @@ export default function PostDetailPage() {
                 resize: "vertical",
               }}
             />
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12,
+                marginTop: 8,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={isNotice}
+                onChange={(e) => setIsNotice(e.target.checked)}
+              />
+              이 글을 공지로 상단 고정하기
+            </label>
             <div
               style={{
                 marginTop: 8,
@@ -325,6 +346,7 @@ export default function PostDetailPage() {
                 gap: 8,
               }}
             >
+            
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
@@ -377,7 +399,7 @@ export default function PostDetailPage() {
           rows={3}
           placeholder="댓글을 입력하세요"
           style={{
-            width: "100%",
+            width: "97%",
             padding: 10,
             borderRadius: 8,
             border: "1px solid #d1d5db",

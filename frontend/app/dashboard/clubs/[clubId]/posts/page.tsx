@@ -16,6 +16,18 @@ interface PostListItem {
   commentCount: number;
 }
 
+type SortOption = "latest" | "oldest" | "mostViewed";
+
+interface PostListResponse {
+  posts: PostListItem[];
+  pagination: {
+    totalCount: number;
+    totalPages: number;
+    page: number;
+    pageSize: number;
+  };
+}
+
 export default function ClubPostsPage() {
   const params = useParams<{ clubId: string }>();
   const router = useRouter();
@@ -29,36 +41,21 @@ export default function ClubPostsPage() {
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [isNotice, setIsNotice] = useState(false);
+
+  // 🔍 검색/정렬/페이징 상태
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortOption>("latest");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const prettyTier = (tier: PostListItem["authorTier"]) => {
-  if (!tier) return "";
-  if (tier === "JUNIOR") return "Junior";
-  if (tier === "SENIOR") return "Senior";
-  if (tier === "MANAGER") return "Manager";
-  return tier;
-};
-
-  const fetchPosts = async () => {
-    if (Number.isNaN(clubId)) return;
-    setLoading(true);
-    setErrorMsg(null);
-
-    try {
-      const data = await authApiRequest<{ posts: PostListItem[] }>(
-        `/clubs/${clubId}/posts`,
-      );
-      setPosts(data.posts ?? []);
-    } catch (e: any) {
-      setErrorMsg(e.message ?? "게시글 목록을 불러오지 못했습니다.");
-    } finally {
-      setLoading(false);
-    }
+    if (!tier) return "";
+    if (tier === "JUNIOR") return "Junior";
+    if (tier === "SENIOR") return "Senior";
+    if (tier === "MANAGER") return "Manager";
+    return tier;
   };
-
-  useEffect(() => {
-    fetchPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubId]);
 
   const isNewPost = (createdAt: string) => {
     const created = new Date(createdAt).getTime();
@@ -66,6 +63,38 @@ export default function ClubPostsPage() {
     const ONE_DAY = 24 * 60 * 60 * 1000;
     return diffMs <= ONE_DAY;
   };
+
+  const fetchPosts = async () => {
+    if (Number.isNaN(clubId)) return;
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const searchParams = new URLSearchParams({
+        page: String(page),
+        pageSize: "10",
+        sort,
+        q: query,
+      });
+
+      const data = await authApiRequest<PostListResponse>(
+        `/clubs/${clubId}/posts?${searchParams.toString()}`,
+      );
+
+      setPosts(data.posts ?? []);
+      setTotalPages(data.pagination?.totalPages ?? 1);
+    } catch (e: any) {
+      setErrorMsg(e.message ?? "게시글 목록을 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // clubId / page / sort / query 가 바뀔 때마다 목록 다시 조회
+  useEffect(() => {
+    fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId, page, sort, query]);
 
   const handleCreate = async () => {
     if (!title.trim()) {
@@ -78,19 +107,22 @@ export default function ClubPostsPage() {
     }
 
     try {
-      await authApiRequest<{ post: any }>(`/clubs/${clubId}/posts`, {
+      const res = await authApiRequest<{ post: any }>(`/clubs/${clubId}/posts`, {
         method: "POST",
         body: JSON.stringify({
           title,
           content,
           visibility: "ALL", // 기본값
+          isNotice,
         }),
       });
 
       setTitle("");
       setContent("");
       setCreating(false);
-      await fetchPosts();
+      // 새 글 작성 후 1페이지부터 다시 보도록
+      setPage(1);
+      router.push(`/dashboard/clubs/${clubId}/posts/${res.post.id}`);
     } catch (e: any) {
       alert(e.message ?? "게시글 작성에 실패했습니다.");
     }
@@ -109,10 +141,57 @@ export default function ClubPostsPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
         }}
       >
         <h1 className="page-title">게시판</h1>
-        <div style={{ display: "flex", gap: 8 }}>
+
+        {/* 🔍 검색 & 정렬 & 버튼 */}
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <input
+            type="text"
+            placeholder="검색(제목/내용)"
+            value={query}
+            onChange={(e) => {
+              setPage(1); // 검색어 바뀌면 첫 페이지로
+              setQuery(e.target.value);
+            }}
+            style={{
+              fontSize: 12,
+              padding: "6px 8px",
+              borderRadius: 999,
+              border: "1px solid #d1d5db",
+              minWidth: 180,
+            }}
+          />
+
+          <select
+            value={sort}
+            onChange={(e) => {
+              setPage(1); // 정렬 바뀌면 첫 페이지로
+              setSort(e.target.value as SortOption);
+            }}
+            style={{
+              fontSize: 12,
+              padding: "6px 8px",
+              borderRadius: 999,
+              border: "1px solid #d1d5db",
+              background: "#fff",
+            }}
+          >
+            <option value="latest">최신순</option>
+            <option value="oldest">오래된 순</option>
+            <option value="mostViewed">조회수순</option>
+          </select>
+
           <button
             type="button"
             onClick={() => setCreating((prev) => !prev)}
@@ -127,6 +206,7 @@ export default function ClubPostsPage() {
           >
             {creating ? "작성 폼 닫기" : "새 글 작성"}
           </button>
+
           <button
             type="button"
             onClick={() => router.push(`/dashboard/clubs/${clubId}`)}
@@ -183,6 +263,23 @@ export default function ClubPostsPage() {
               }}
             />
           </div>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+              marginBottom: 8,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={isNotice}
+              onChange={(e) => setIsNotice(e.target.checked)}
+            />
+            이 글을 공지로 상단 고정하기
+          </label>
+
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <button
               type="button"
@@ -257,13 +354,13 @@ export default function ClubPostsPage() {
                 cursor: "pointer",
               }}
               onClick={() =>
-                router.push(
-                  `/dashboard/clubs/${clubId}/posts/${post.id}`,
-                )
+                router.push(`/dashboard/clubs/${clubId}/posts/${post.id}`)
               }
             >
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: 6 }}
+                >
                   <span
                     style={{
                       fontWeight: isNew ? 700 : 500,
@@ -311,6 +408,54 @@ export default function ClubPostsPage() {
           );
         })}
       </ul>
+
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div
+          style={{
+            marginTop: 16,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 12,
+          }}
+        >
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(p - 1, 1))}
+            style={{
+              padding: "4px 8px",
+              borderRadius: 999,
+              border: "1px solid #e5e7eb",
+              background: page <= 1 ? "#f9fafb" : "#fff",
+              cursor: page <= 1 ? "default" : "pointer",
+            }}
+          >
+            이전
+          </button>
+          <span>
+            {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() =>
+              setPage((p) => (p < totalPages ? p + 1 : p))
+            }
+            style={{
+              padding: "4px 8px",
+              borderRadius: 999,
+              border: "1px solid #e5e7eb",
+              background: page >= totalPages ? "#f9fafb" : "#fff",
+              cursor: page >= totalPages ? "default" : "pointer",
+            }}
+          >
+            다음
+          </button>
+        </div>
+      )}
     </div>
   );
 }

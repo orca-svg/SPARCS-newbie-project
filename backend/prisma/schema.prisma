@@ -102,6 +102,8 @@ model Post {
   visibility  PostVisibility @default(ALL)
   viewCount   Int            @default(0)
 
+  isNotice    Boolean        @default(false)
+  pinnedAt    DateTime?
 
   user        User           @relation(fields: [userId], references: [id])
   club        Club           @relation(fields: [clubId], references: [id])
@@ -109,6 +111,8 @@ model Post {
   comments    Comment[]
   readStatus  ReadStatus[]
   authorTier  MemberTier?
+
+  @@index([clubId, isNotice, createdAt])
 }
 
 model Comment {

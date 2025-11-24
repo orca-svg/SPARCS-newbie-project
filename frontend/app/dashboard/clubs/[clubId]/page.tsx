@@ -28,6 +28,7 @@ interface RecentPost {
   viewCount: number;
 }
 
+
 type JoinStatus = "unknown" | "joined" | "not-joined";
 
 export default function ClubDetailPage() {
@@ -49,26 +50,48 @@ export default function ClubDetailPage() {
 
   const [recentPosts, setRecentPosts] = useState<RecentPost[]>([]);
   const [recentLoading, setRecentLoading] = useState(false);
+  const [noticePosts, setNoticePosts] = useState<RecentPost[]>([]);
+  const [noticeLoading, setNoticeLoading] = useState(false);
   
-  useEffect(() => {
+ useEffect(() => {
   if (!clubIdNumber || Number.isNaN(clubIdNumber)) return;
 
-  const fetchRecent = async () => {
+  const fetchRightPanels = async () => {
     setRecentLoading(true);
+    setNoticeLoading(true);
+
     try {
-      const data = await authApiRequest<{ posts: RecentPost[] }>(
-        `/clubs/${clubIdNumber}/posts`,
-      );
-      // 최신 글 3개까지만 사용
-      setRecentPosts((data.posts ?? []).slice(0, 3));
+      const baseQuery = `page=1&pageSize=3&sort=latest`;
+
+      const [recentRes, noticeRes] = await Promise.all([
+        // 최근 게시글 3개
+        authApiRequest<{ posts: RecentPost[] }>(
+          `/clubs/${clubIdNumber}/posts?${baseQuery}`,
+        ),
+        // 공지 게시글 3개
+        authApiRequest<{ posts: RecentPost[] }>(
+          `/clubs/${clubIdNumber}/posts?${baseQuery}&onlyNotice=true`,
+        ),
+      ]);
+
+      const recent = Array.isArray(recentRes.posts)
+        ? recentRes.posts.slice(0, 3)
+        : [];
+      const notices = Array.isArray(noticeRes.posts)
+        ? noticeRes.posts.slice(0, 3)
+        : [];
+
+      setRecentPosts(recent);
+      setNoticePosts(notices);
     } catch (e) {
-      console.error("최근 게시글을 가져오지 못했습니다.", e);
+      console.error("대시보드 우측 패널 데이터 조회 실패", e);
     } finally {
       setRecentLoading(false);
+      setNoticeLoading(false);
     }
   };
 
-  fetchRecent();
+  fetchRightPanels();
 }, [clubIdNumber]);
 
   useEffect(() => {
@@ -231,9 +254,82 @@ export default function ClubDetailPage() {
         {/* 오른쪽: 공지 / 게시판 / 멤버 박스 */}
         <aside className="dashboard-right">
           <div className="right-card">
-            <div className="panel-title">동아리 공지</div>
-            <div className="card-body">이 동아리의 공지 글 목록 자리</div>
-          </div>
+    <div className="panel-title">동아리 공지</div>
+    <div className="card-body">
+      {/* 로딩 상태 */}
+      {noticeLoading && (
+        <div style={{ fontSize: 12, color: "#9ca3af" }}>
+          공지글을 불러오는 중...
+        </div>
+      )}
+
+      {/* 공지 없을 때 */}
+      {!noticeLoading && noticePosts.length === 0 && (
+        <div style={{ fontSize: 12, color: "#9ca3af" }}>
+          등록된 공지가 없습니다.
+        </div>
+      )}
+
+      {/* 공지 목록 */}
+      {!noticeLoading && noticePosts.length > 0 && (
+        <ul
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            listStyle: "none",
+            margin: 0,
+            padding: 0,
+          }}
+        >
+          {noticePosts.map((post) => (
+            <li key={post.id}>
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    `/dashboard/clubs/${clubIdNumber}/posts/${post.id}`,
+                  )
+                }
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  fontSize: 13,
+                  padding: "4px 6px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: 500,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {post.title}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#9ca3af",
+                    marginTop: 2,
+                  }}
+                >
+                  {new Date(post.createdAt).toLocaleDateString()} · 댓글{" "}
+                  {post.commentCount} · 조회 {post.viewCount}
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>
+
           
           <div className="right-card">
           <div className="panel-title">게시글</div>
@@ -260,6 +356,7 @@ export default function ClubDetailPage() {
                   flexDirection: "column",
                   gap: 4,
                   marginBottom: 8,
+                  listStyle: "none",
                 }}
               >
                 {recentPosts.map((post) => (

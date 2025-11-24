@@ -1,0 +1,16 @@
+export interface PostSummary {
+  id: number;
+  title: string;
+  createdAt: string;
+  viewCount: number;
+  authorName: string;
+  authorTier: string | null;
+  commentCount: number;
+}
+
+export interface ListPostsResponse {
+  items: PostSummary[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
