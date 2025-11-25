@@ -310,6 +310,18 @@ export default function ClubDetailPage() {
                     whiteSpace: "nowrap",
                   }}
                 >
+                  <span
+                    style={{
+                      fontSize: 10,
+                      marginRight: 4,
+                      padding: "1px 4px",
+                      borderRadius: 999,
+                      background: "#fee2e2",
+                      color: "#b91c1c",
+                    }}
+                  >
+                    공지
+                  </span>
                   {post.title}
                 </div>
                 <div

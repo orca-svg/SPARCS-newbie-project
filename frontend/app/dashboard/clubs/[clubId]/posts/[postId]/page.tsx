@@ -58,8 +58,11 @@ export default function PostDetailPage() {
   const { user: me } = useAuth();
 
   // 내가 작성자인지 여부
-  const canEdit = me && post ? me.id === post.author.id : false;
-
+const canEdit =
+  !!me && !!post && !!post.author
+    ? me.id === post.author.id
+    : false;
+    
   const isNew = (createdAt: string) => {
     const diff = Date.now() - new Date(createdAt).getTime();
     return diff <= 24 * 60 * 60 * 1000; // 24시간 이내면 new!
@@ -212,6 +215,21 @@ export default function PostDetailPage() {
         }}
       >
         <div>
+          {post.isNotice && (
+            <span
+              style={{
+                fontSize: 12,
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: "#fee2e2",
+                color: "#b91c1c",
+                fontWeight: 600,
+              }}
+            >
+              공지
+            </span>
+          )}
+
           <h1 style={{ fontSize: 20, fontWeight: 700 }}>
             {post.title}
             {isNew(post.createdAt) && (

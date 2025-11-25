@@ -383,7 +383,7 @@ private static canSetNotice(role: ClubMemberRole, tier: MemberTier | null) {
     },
   });
 
-  return updated;
+  return await this.getPost(postId, userId);
 }
     // 게시글 삭제 (작성자 본인만)
   static async deletePost(input: {

@@ -14,6 +14,7 @@ interface PostListItem {
   visibility: "ALL" | "JUNIOR" | "SENIOR" | "MANAGER";
   authorTier: "JUNIOR" | "SENIOR" | "MANAGER" | null;
   commentCount: number;
+  isNotice: boolean;
 }
 
 type SortOption = "latest" | "oldest" | "mostViewed";
@@ -361,6 +362,20 @@ export default function ClubPostsPage() {
                 <div
                   style={{ display: "flex", alignItems: "center", gap: 6 }}
                 >
+                  {post.isNotice && (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        padding: "2px 6px",
+                        borderRadius: 999,
+                        background: "#fee2e2",
+                        color: "#b91c1c",
+                        fontWeight: 600,
+                      }}
+                    >
+                      공지
+                    </span>
+                  )}
                   <span
                     style={{
                       fontWeight: isNew ? 700 : 500,

@@ -32,6 +32,7 @@ export default function ClubsDirectoryPage() {
 
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  
 
   const fetchData = async () => {
     setLoading(true);
