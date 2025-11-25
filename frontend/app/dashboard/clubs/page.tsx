@@ -20,6 +20,14 @@ type MembershipStatus = "NONE" | "JOINED" | "PENDING";
 
 export default function ClubsDirectoryPage() {
   const router = useRouter();
+  const handleEnterClub = (clubId: number, status: MembershipStatus) => {
+  if (status !== "JOINED") {
+    alert("동아리 멤버만 이용할 수 있습니다.");
+    return;
+  }
+
+  router.push(`/dashboard/clubs`);
+};
 
   const [allClubs, setAllClubs] = useState<ClubSummary[]>([]);
   const [myClubIds, setMyClubIds] = useState<number[]>([]);
@@ -234,9 +242,7 @@ export default function ClubsDirectoryPage() {
               >
                 <div
                   style={{ cursor: "pointer" }}
-                  onClick={() =>
-                    router.push(`/dashboard/clubs/${club.id}`)
-                  }
+                  onClick={() => handleEnterClub(club.id, status)}
                 >
                   <div style={{ fontWeight: 600 }}>{club.name}</div>
                   {club.description && (

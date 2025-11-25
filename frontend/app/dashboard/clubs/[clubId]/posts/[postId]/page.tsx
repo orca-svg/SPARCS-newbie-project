@@ -97,7 +97,16 @@ const canSetNotice =
       setEditContent(res.post.content);
       setIsNotice(res.post.isNotice ?? false); 
     } catch (e: any) {
-      setErrorMsg(e.message ?? "게시글을 불러오지 못했습니다.");
+      const message = e?.message ?? "게시글을 불러오지 못했습니다.";
+
+      if (message.includes("동아리의 멤버만") || message.includes("동아리 멤버만")) {
+        alert("동아리 멤버만 이용할 수 있습니다.");
+        router.replace("/dashboard/clubs");
+        return;
+      }
+
+      console.error("게시글을 불러오지 못했습니다:", e);
+      setErrorMsg(message);
     } finally {
       setLoading(false);
     }

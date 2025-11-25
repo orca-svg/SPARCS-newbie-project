@@ -85,8 +85,18 @@ export default function ClubPostsPage() {
       setPosts(data.posts ?? []);
       setTotalPages(data.pagination?.totalPages ?? 1);
     } catch (e: any) {
-      setErrorMsg(e.message ?? "게시글 목록을 불러오지 못했습니다.");
-    } finally {
+      const message = e?.message ?? "게시글 목록을 불러오지 못했습니다.";
+
+      // 백엔드에서 던지는 메시지 기준으로 멤버 전용 에러 판별
+      if (message.includes("동아리의 멤버만") || message.includes("동아리 멤버만")) {
+        alert("동아리 멤버만 이용할 수 있습니다.");
+        router.replace("/dashboard/clubs");
+        return;
+      }
+
+      console.error("게시글 목록을 불러오지 못했습니다:", e);
+      setErrorMsg(message);
+    }finally {
       setLoading(false);
     }
   };

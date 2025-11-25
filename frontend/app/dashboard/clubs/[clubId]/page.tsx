@@ -97,10 +97,15 @@ export default function ClubDetailPage() {
   };
 
   fetchRightPanels();
-}, [clubIdNumber]);
+}, [clubIdNumber, joinStatus]);
 
   useEffect(() => {
     if (!clubIdNumber || Number.isNaN(clubIdNumber)) return;
+    if (joinStatus !== "joined") {
+    setNoticePosts([]);
+    setRecentPosts([]);
+    return;
+  }
     
     const fetchData = async () => {
       try {
