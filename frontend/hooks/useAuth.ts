@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role: string;
+  tier: string;
 }
 
 interface UseAuthOptions {

@@ -202,7 +202,7 @@ export default function ClubsDirectoryPage() {
 
         {!loading && !errorMsg && allClubs.length === 0 && (
           <div style={{ marginTop: 8, fontSize: 13, color: "#6b7280" }}>
-            아직 등록된 동아리가 없습니다. 새 동아리를 생성해 보세요.
+            아직 동아리가 없습니다. 새 동아리를 생성하거나 가입해보세요!
           </div>
         )}
 

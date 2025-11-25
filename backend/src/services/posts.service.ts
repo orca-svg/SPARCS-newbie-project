@@ -1,13 +1,10 @@
 import { prisma } from "../prisma/client.ts";
 
 import type {
-  Prisma,
-  Post,
   PostVisibility,
   MemberTier,
   ClubMemberRole,
 } from "@prisma/client";
-import { ClubService } from "./clubs.service.ts";
 
 
 export interface PostListItem {
@@ -43,10 +40,12 @@ export interface PostDetail {
   viewCount: number;
   visibility: PostVisibility;
   clubId: number;
+  isNotice: boolean;
   author: {
     id: number;
     name: string;
     tier: MemberTier | null;
+    role: ClubMemberRole | null;
   };
 }
 
@@ -225,10 +224,12 @@ private static canSetNotice(role: ClubMemberRole, tier: MemberTier | null) {
       viewCount: updated.viewCount,
       visibility: updated.visibility,
       clubId: updated.clubId,
+      isNotice: updated.isNotice,
       author: {
         id: updated.user.id,
         name: updated.user.name,
         tier: updated.authorTier ?? null,
+        role: updated.authorRole ?? null
       },
     };
   }

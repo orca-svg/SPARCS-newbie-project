@@ -48,7 +48,7 @@ export default function PostDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
-  const [isNotice, setIsNotice] = useState(false);
+  const [isNotice, setIsNotice] = useState<boolean>(false);
 
 
   // dev 모드에서 useEffect 두 번 실행되는 것 방지 (조회수 2 증가 방지)
@@ -62,6 +62,12 @@ const canEdit =
   !!me && !!post && !!post.author
     ? me.id === post.author.id
     : false;
+
+const canSetNotice =
+  !!me &&
+  (me.role === "LEADER" || 
+    me.tier === "SENIOR" ||
+    me.tier === "MANAGER");
     
   const isNew = (createdAt: string) => {
     const diff = Date.now() - new Date(createdAt).getTime();
@@ -89,7 +95,7 @@ const canEdit =
       setPost(res.post);
       setEditTitle(res.post.title);
       setEditContent(res.post.content);
-      setIsNotice(res.post.isNotice); 
+      setIsNotice(res.post.isNotice ?? false); 
     } catch (e: any) {
       setErrorMsg(e.message ?? "게시글을 불러오지 못했습니다.");
     } finally {
@@ -229,7 +235,6 @@ const canEdit =
               공지
             </span>
           )}
-
           <h1 style={{ fontSize: 20, fontWeight: 700 }}>
             {post.title}
             {isNew(post.createdAt) && (
@@ -340,7 +345,8 @@ const canEdit =
                 resize: "vertical",
               }}
             />
-            <label
+            {/* {canSetNotice && ( */}
+              <label
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -356,6 +362,7 @@ const canEdit =
               />
               이 글을 공지로 상단 고정하기
             </label>
+            {/* )} */}
             <div
               style={{
                 marginTop: 8,

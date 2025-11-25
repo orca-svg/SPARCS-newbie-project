@@ -26,6 +26,7 @@ interface RecentPost {
   createdAt: string;
   commentCount: number;
   viewCount: number;
+  isNotice?: boolean;
 }
 
 
@@ -77,9 +78,13 @@ export default function ClubDetailPage() {
       const recent = Array.isArray(recentRes.posts)
         ? recentRes.posts.slice(0, 3)
         : [];
-      const notices = Array.isArray(noticeRes.posts)
-        ? noticeRes.posts.slice(0, 3)
+      const rawnotices = Array.isArray(noticeRes.posts)
+        ? noticeRes.posts
         : [];
+
+      const notices = rawnotices
+      .filter((post) => post.isNotice === true)
+      .slice(0, 3);
 
       setRecentPosts(recent);
       setNoticePosts(notices);
