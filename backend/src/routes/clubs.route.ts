@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { ClubController } from "../controllers/clubs.controller.ts";
 import { authMiddleware } from "../middleware/auth.ts";
+import SchedulesController from "../controllers/schedules.controller.ts";
+
+
+
 
 const router = Router();
 
@@ -39,6 +43,38 @@ router.post(
 
 // 동아리 생성
 router.post("/", authMiddleware, ClubController.create);
+
+// 동아리 일정 목록 조회
+router.get(
+  "/:clubId/schedules",
+  authMiddleware,
+  SchedulesController.listByClub,
+);
+
+router.post(
+  "/:clubId/schedules",
+  authMiddleware,
+  SchedulesController.create,
+);
+
+router.patch(
+  "/:clubId/schedules/:scheduleId",
+  authMiddleware,
+  SchedulesController.update,
+);
+
+router.delete(
+  "/:clubId/schedules/:scheduleId",
+  authMiddleware,
+  SchedulesController.delete,
+);
+
+//멤버 목록 조회
+router.get(
+  "/:clubId/members",
+  authMiddleware,
+  ClubController.listMembers,
+)
 
 
 export default router;

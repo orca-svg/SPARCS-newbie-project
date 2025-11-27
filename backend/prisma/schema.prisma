@@ -131,7 +131,10 @@ model Comment {
 model Schedule {
   id        Int          @id @default(autoincrement())
   title     String
-  date      DateTime
+
+  startAt   DateTime   
+  endAt     DateTime
+
   content   String?
 
   clubId    Int

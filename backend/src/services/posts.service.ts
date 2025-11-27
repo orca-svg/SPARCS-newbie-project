@@ -45,7 +45,6 @@ export interface PostDetail {
     id: number;
     name: string;
     tier: MemberTier | null;
-    role: ClubMemberRole | null;
   };
 }
 
@@ -229,7 +228,6 @@ private static canSetNotice(role: ClubMemberRole, tier: MemberTier | null) {
         id: updated.user.id,
         name: updated.user.name,
         tier: updated.authorTier ?? null,
-        role: updated.authorRole ?? null
       },
     };
   }

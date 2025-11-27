@@ -4,7 +4,7 @@ export default function DashboardPage() {
       {/* 중앙: 캘린더 자리 */}
       <section className="dashboard-calendar">
         <div className="panel-title">Calendar</div>
-        <div className="calendar-box">여기에 나중에 실제 캘린더 컴포넌트</div>
+        <div className="calendar-box">일정 목록 로드중,,</div>
       </section>
 
       {/* 오른쪽: 공지 / 프로젝트 / 채팅 박스 */}

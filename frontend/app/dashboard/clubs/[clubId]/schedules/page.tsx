@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { authApiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,16 +40,6 @@ interface ScheduleDTO {
   updatedAt: string;
 }
 
-interface ClubMemberSummary {
-  id: number;
-  userId: number;
-  name: string;
-  role: "LEADER" | "WRITER" | "READER";
-  tier: "JUNIOR" | "SENIOR" | "MANAGER";
-  joinedAt: string;
-}
-
-
 type JoinStatus = "unknown" | "joined" | "not-joined";
 type ClubMemberRole = "LEADER" | "WRITER" | "READER";
 
@@ -61,21 +51,19 @@ function sameDay(a: string, b: string) {
   return a.slice(0, 10) === b.slice(0, 10);
 }
 
-/** =======================
- *  캘린더 컴포넌트
- *  - drag & drop으로 날짜 변경
- *  - hover 시 삭제 버튼 노출
- *  - 변경/삭제 후 onChanged() 호출하여 우측 패널 갱신
- * ======================== */
+/** ------------------ 캘린더 컴포넌트 ------------------ */
+
+interface ClubScheduleCalendarProps {
+  clubId: number;
+  canManage: boolean;
+  onSchedulesChanged?: () => void | Promise<void>;
+}
+
 function ClubScheduleCalendar({
   clubId,
   canManage,
-  onChanged,
-}: {
-  clubId: number;
-  canManage: boolean;
-  onChanged?: () => void;
-}) {
+  onSchedulesChanged,
+}: ClubScheduleCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -85,22 +73,23 @@ function ClubScheduleCalendar({
   const [schedules, setSchedules] = useState<ScheduleDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [draggingId, setDraggingId] = useState<number | null>(null);
 
-  // 현재 month 기준 from/to 로딩
-  const fetchMonthSchedules = async (baseDate: Date) => {
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
+
+  const reloadMonth = useCallback(async () => {
     if (!clubId || Number.isNaN(clubId)) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const fromDate = new Date(baseDate);
+      const fromDate = new Date(currentMonth);
       fromDate.setDate(1);
 
-      const toDate = new Date(baseDate);
+      const toDate = new Date(currentMonth);
       toDate.setMonth(toDate.getMonth() + 1);
-      toDate.setDate(0); // 이번 달 마지막 날
+      toDate.setDate(0);
 
       const from = formatYMD(fromDate);
       const to = formatYMD(toDate);
@@ -117,12 +106,11 @@ function ClubScheduleCalendar({
     } finally {
       setLoading(false);
     }
-  };
+  }, [clubId, currentMonth]);
 
   useEffect(() => {
-    fetchMonthSchedules(currentMonth);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubId, currentMonth]);
+    reloadMonth();
+  }, [reloadMonth]);
 
   // 달력용 날짜 계산
   const year = currentMonth.getFullYear();
@@ -130,13 +118,19 @@ function ClubScheduleCalendar({
 
   const firstDay = new Date(year, month, 1);
   const firstWeekday = firstDay.getDay(); // 0~6
+
   const lastDayDate = new Date(year, month + 1, 0);
   const lastDate = lastDayDate.getDate();
 
-  const cells: (Date | null)[] = [];
-  for (let i = 0; i < firstWeekday; i += 1) cells.push(null);
+  const days: (Date | null)[] = [];
+  for (let i = 0; i < firstWeekday; i += 1) days.push(null);
   for (let d = 1; d <= lastDate; d += 1) {
-    cells.push(new Date(year, month, d));
+    days.push(new Date(year, month, d));
+  }
+
+  const weeks: (Date | null)[][] = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
   }
 
   const handlePrevMonth = () => {
@@ -157,82 +151,24 @@ function ClubScheduleCalendar({
 
   const monthLabel = `${year}년 ${month + 1}월`;
 
-  /** ------------ 삭제 ------------- */
-  const handleDelete = async (scheduleId: number) => {
-    if (!canManage) return;
+  /** 드롭 시 날짜 변경 */
+  const handleDayDrop = async (targetDateStr: string) => {
+    if (!canManage || draggingId == null) return;
 
-    const ok = window.confirm("이 일정을 삭제하시겠습니까?");
-    if (!ok) return; // 🔴 취소하면 바로 종료 (서버 요청 X)
+    const schedule = schedules.find((s) => s.id === draggingId);
+    if (!schedule) return;
 
-    try {
-      await authApiRequest<{}>(
-        `/clubs/${clubId}/schedules/${scheduleId}`,
-        {
-          method: "DELETE",
-        },
-      );
+    const oldStart = new Date(schedule.startAt);
+    const oldEnd = new Date(schedule.endAt);
+    const durationMs = oldEnd.getTime() - oldStart.getTime();
 
-      // 프론트 목록 갱신
-      setSchedules((prev) => prev.filter((s) => s.id !== scheduleId));
-
-      // 우측 패널/상위 컴포넌트도 갱신
-      onChanged?.();
-    } catch (e: any) {
-      console.error("일정 삭제 실패", e);
-      alert(e.message ?? "일정 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
-    }
-  };
-
-  /** --------- 드래그 & 드롭으로 날짜 이동 ---------- */
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: number) => {
-    if (!canManage) return;
-    setDraggingId(id);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(id));
-  };
-
-  const handleDragEnd = () => {
-    setDraggingId(null);
-  };
-
-  const handleDayDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    if (!canManage) return;
-    e.preventDefault();
-  };
-
-  const handleDayDrop = async (
-    e: React.DragEvent<HTMLDivElement>,
-    day: Date,
-  ) => {
-    if (!canManage) return;
-
-    e.preventDefault();
-    const idStr = e.dataTransfer.getData("text/plain");
-    const scheduleId = Number(idStr || draggingId);
-    if (!scheduleId) return;
-
-    const target = schedules.find((s) => s.id === scheduleId);
-    if (!target) return;
-
-    const oldStart = new Date(target.startAt);
-    const oldEnd = new Date(target.endAt);
-
-    const durationDays =
-      Math.max(
-        1,
-        Math.round(
-          (oldEnd.getTime() - oldStart.getTime()) / (1000 * 60 * 60 * 24),
-        ) + 1,
-      );
-
-    const newStart = new Date(day);
-    newStart.setHours(0, 0, 0, 0);
-    const newEnd = new Date(newStart);
-    newEnd.setDate(newEnd.getDate() + durationDays - 1);
+    // targetDateStr = "YYYY-MM-DD"
+    const newStart = new Date(`${targetDateStr}T00:00:00`);
+    const newEnd = new Date(newStart.getTime() + durationMs);
 
     try {
-      await authApiRequest<ScheduleDTO>(
-        `/clubs/${clubId}/schedules/${scheduleId}`,
+      await authApiRequest(
+        `/clubs/${clubId}/schedules/${schedule.id}`,
         {
           method: "PATCH",
           body: JSON.stringify({
@@ -242,20 +178,42 @@ function ClubScheduleCalendar({
         },
       );
 
-      // 다시 월간 일정 로딩
-      await fetchMonthSchedules(currentMonth);
-      onChanged?.();
-    } catch (err: any) {
-      console.error("일정 이동 실패", err);
-      alert(err.message ?? "일정을 옮기는 데 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      await reloadMonth();
+      if (onSchedulesChanged) await onSchedulesChanged();
+    } catch (e) {
+      console.error(e);
+      alert("일정을 옮기는 데 실패했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setDraggingId(null);
     }
   };
 
+  /** 삭제 */
+  const handleDeleteSchedule = async (scheduleId: number) => {
+    if (!canManage) return;
+
+    const ok = window.confirm("이 일정을 삭제하시겠습니까?");
+    if (!ok) return; // 🔴 취소하면 여기서 바로 종료
+
+    try {
+      await authApiRequest(
+        `/clubs/${clubId}/schedules/${scheduleId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      await reloadMonth();
+      if (onSchedulesChanged) await onSchedulesChanged();
+    } catch (e) {
+      console.error(e);
+      alert("일정 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+  };
+
   return (
     <div>
-      {/* 상단 헤더: 월 이동 컨트롤 + 새 일정 버튼은 부모에서 처리 */}
+      {/* 상단 헤더: 월 이동 */}
       <div
         style={{
           display: "flex",
@@ -331,102 +289,132 @@ function ClubScheduleCalendar({
           gap: 4,
         }}
       >
-        {cells.map((day, idx) => {
-          if (!day) {
+        {weeks.flatMap((week, wi) =>
+          week.map((day, di) => {
+            if (!day) {
+              return (
+                <div
+                  key={`${wi}-${di}`}
+                  style={{
+                    borderRadius: 8,
+                    minHeight: 60,
+                    background: "#f9fafb",
+                  }}
+                />
+              );
+            }
+
+            const dayStr = formatYMD(day);
+            const daySchedules = schedules.filter((s) =>
+              sameDay(s.startAt, dayStr),
+            );
+
             return (
               <div
-                key={`empty-${idx}`}
+                key={`${wi}-${di}`}
+                onDragOver={(e) => {
+                  if (canManage && draggingId !== null) {
+                    e.preventDefault();
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleDayDrop(dayStr);
+                }}
                 style={{
                   borderRadius: 8,
-                  minHeight: 60,
-                  background: "#f9fafb",
-                }}
-              />
-            );
-          }
-
-          const dayStr = formatYMD(day);
-
-          // start ~ end 기간 중에 day가 포함되어 있는 일정도 표시하고 싶다면
-          // sameDay 대신 범위 체크로 바꿀 수 있음
-          const daySchedules = schedules.filter((s) =>
-            sameDay(s.startAt, dayStr),
-          );
-
-          return (
-            <div
-              key={dayStr}
-              onDragOver={handleDayDragOver}
-              onDrop={(e) => handleDayDrop(e, day)}
-              style={{
-                borderRadius: 8,
-                border: "1px solid #e5e7eb",
-                padding: 4,
-                minHeight: 70,
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-                background: "#ffffff",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  marginBottom: 2,
+                  border: "1px solid #e5e7eb",
+                  padding: 4,
+                  minHeight: 70,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  background: "#ffffff",
                 }}
               >
-                {day.getDate()}
-              </div>
-
-              {daySchedules.slice(0, 3).map((s) => (
                 <div
-                  key={s.id}
-                  className="schedule-chip"
-                  draggable={canManage}
-                  onDragStart={(e) => handleDragStart(e, s.id)}
-                  onDragEnd={handleDragEnd}
-                  title={s.title}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    marginBottom: 2,
+                  }}
                 >
-                  <span className="schedule-chip-title">{s.title}</span>
-                  {canManage && (
-                    <button
-                      type="button"
-                      className="schedule-chip-delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleDelete(s.id);
-                      }}
-                    >
-                      ×
-                    </button>
-                  )}
+                  {day.getDate()}
                 </div>
-              ))}
 
-              {daySchedules.length > 3 && (
-                <div style={{ fontSize: 10, color: "#6b7280" }}>
-                  +{daySchedules.length - 3}개 더
-                </div>
-              )}
-            </div>
-          );
-        })}
+                {daySchedules.slice(0, 3).map((s) => (
+                  <div
+                    key={s.id}
+                    draggable={canManage}
+                    onDragStart={() => {
+                      if (canManage) setDraggingId(s.id);
+                    }}
+                    onDragEnd={() => setDraggingId(null)}
+                    onMouseEnter={() => setHoveredId(s.id)}
+                    onMouseLeave={() => setHoveredId((prev) => (prev === s.id ? null : prev))}
+                    style={{
+                      position: "relative",
+                      fontSize: 11,
+                      padding: "2px 6px",
+                      borderRadius: 999,
+                      background: "#e5e7eb",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      cursor: canManage ? "grab" : "default",
+                    }}
+                    title={s.title}
+                  >
+                    <span>{s.title}</span>
+                    {canManage && hoveredId === s.id && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleDeleteSchedule(s.id);
+                        }}
+                        style={{
+                          position: "absolute",
+                          right: 6,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          fontSize: 10,
+                          padding: "0 4px",
+                          borderRadius: 999,
+                          background: "#f97373",
+                          color: "#ffffff",
+                          cursor: "pointer",
+                        }}
+                      >
+                        삭제
+                      </span>
+                    )}
+                  </div>
+                ))}
+
+                {daySchedules.length > 3 && (
+                  <div style={{ fontSize: 10, color: "#6b7280" }}>
+                    +{daySchedules.length - 3}개 더
+                  </div>
+                )}
+              </div>
+            );
+          }),
+        )}
       </div>
     </div>
   );
 }
 
-/** =======================
- *   클럽 상세 페이지
- * ======================= */
+/** ------------------ 메인 페이지 ------------------ */
+
 export default function ClubDetailPage() {
   const params = useParams<{ clubId: string }>();
   const router = useRouter();
+  const clubIdParam = params.clubId;
   const { user } = useAuth({ required: true });
 
-  const clubIdNumber = Number(params.clubId);
+  const clubIdNumber = Number(clubIdParam);
 
   const [club, setClub] = useState<ClubDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -435,9 +423,6 @@ export default function ClubDetailPage() {
   const [joinStatus, setJoinStatus] = useState<JoinStatus>("unknown");
   const [isLeaderOrAdmin, setIsLeaderOrAdmin] = useState(false);
   const [myRole, setMyRole] = useState<ClubMemberRole | null>(null);
-  const canManageSchedules =
-    user?.role === "ADMIN" || myRole === "LEADER" || myRole === "WRITER";
-
   const [joinMessage, setJoinMessage] = useState<string | null>(null);
   const [joinLoading, setJoinLoading] = useState(false);
 
@@ -449,12 +434,12 @@ export default function ClubDetailPage() {
   const [upcomingSchedules, setUpcomingSchedules] = useState<ScheduleDTO[]>([]);
   const [scheduleLoading, setScheduleLoading] = useState(false);
 
-  //멤버 관련
-  const [members, setMembers] = useState<ClubMemberSummary[]>([]);
-  const [membersLoading, setMembersLoading] = useState(false);
+  const canManageSchedules =
+    user?.role === "ADMIN" ||
+    myRole === "LEADER" ||
+    myRole === "WRITER";
 
-
-  // 동아리 정보 + 내 역할
+  /** 동아리 기본 정보 + 내 가입 상태 */
   useEffect(() => {
     if (!clubIdNumber || Number.isNaN(clubIdNumber)) return;
 
@@ -481,6 +466,7 @@ export default function ClubDetailPage() {
 
         const isAdmin = user?.role === "ADMIN";
         const isLeader = membership?.role === "LEADER";
+
         setIsLeaderOrAdmin(Boolean(isAdmin || isLeader));
       } catch (e: any) {
         setError(e.message ?? "동아리 정보를 불러오지 못했습니다.");
@@ -492,87 +478,73 @@ export default function ClubDetailPage() {
     fetchData();
   }, [clubIdNumber, user?.role]);
 
-  // 우측 패널 데이터 fetch (재사용 가능하게 함수로 분리)
- // 우측 패널 데이터 fetch (재사용 가능하게 함수로 분리)
-const fetchRightPanels = async () => {
-  if (!clubIdNumber || Number.isNaN(clubIdNumber)) return;
+  /** 우측 패널(공지/게시글/다가오는 일정) 공통 fetch 함수 */
+  const fetchRightPanels = useCallback(async () => {
+    if (!clubIdNumber || Number.isNaN(clubIdNumber)) return;
 
-  // 가입 안 된 상태면 전부 비우고 종료
-  if (joinStatus !== "joined") {
-    setRecentPosts([]);
-    setNoticePosts([]);
-    setUpcomingSchedules([]);
-    setMembers([]);
-    setRecentLoading(false);
-    setNoticeLoading(false);
-    setScheduleLoading(false);
-    setMembersLoading(false);
-    return;
-  }
+    if (joinStatus !== "joined") {
+      setRecentPosts([]);
+      setNoticePosts([]);
+      setUpcomingSchedules([]);
+      setRecentLoading(false);
+      setNoticeLoading(false);
+      setScheduleLoading(false);
+      return;
+    }
 
-  setRecentLoading(true);
-  setNoticeLoading(true);
-  setScheduleLoading(true);
-  setMembersLoading(true);
+    setRecentLoading(true);
+    setNoticeLoading(true);
+    setScheduleLoading(true);
 
-  try {
-    const baseQuery = `page=1&pageSize=3&sort=latest`;
+    try {
+      const baseQuery = `page=1&pageSize=3&sort=latest`;
 
-    // 🔹 공지/게시글 + 일정 + 멤버를 모두 병렬로 요청
-    const [recentRes, noticeRes, scheduleRes, membersRes] = await Promise.all([
-      authApiRequest<{ posts: RecentPost[] }>(
-        `/clubs/${clubIdNumber}/posts?${baseQuery}`,
-      ),
-      authApiRequest<{ posts: RecentPost[] }>(
-        `/clubs/${clubIdNumber}/posts?${baseQuery}&onlyNotice=true`,
-      ),
-      (async () => {
-        const today = new Date();
-        const from = today.toISOString().slice(0, 10);
-        const toDate = new Date();
-        toDate.setDate(today.getDate() + 30);
-        const to = toDate.toISOString().slice(0, 10);
+      const [recentRes, noticeRes] = await Promise.all([
+        authApiRequest<{ posts: RecentPost[] }>(
+          `/clubs/${clubIdNumber}/posts?${baseQuery}`,
+        ),
+        authApiRequest<{ posts: RecentPost[] }>(
+          `/clubs/${clubIdNumber}/posts?${baseQuery}&onlyNotice=true`,
+        ),
+      ]);
 
-        return authApiRequest<{ schedules: ScheduleDTO[] }>(
-          `/clubs/${clubIdNumber}/schedules?from=${from}&to=${to}&limit=3`,
-        );
-      })(),
-      // 🔹 멤버 목록 호출
-      authApiRequest<{ members: ClubMemberSummary[] }>(
-        `/clubs/${clubIdNumber}/members`,
-      ),
-    ]);
+      const recent = Array.isArray(recentRes.posts)
+        ? recentRes.posts.slice(0, 3)
+        : [];
+      const rawnotices = Array.isArray(noticeRes.posts)
+        ? noticeRes.posts
+        : [];
 
-    const recent = Array.isArray(recentRes.posts)
-      ? recentRes.posts.slice(0, 3)
-      : [];
-    const rawnotices = Array.isArray(noticeRes.posts) ? noticeRes.posts : [];
+      const notices = rawnotices
+        .filter((post) => post.isNotice === true)
+        .slice(0, 3);
 
-    const notices = rawnotices
-      .filter((post) => post.isNotice === true)
-      .slice(0, 3);
+      const today = new Date();
+      const from = today.toISOString().slice(0, 10);
+      const toDate = new Date();
+      toDate.setDate(today.getDate() + 30);
+      const to = toDate.toISOString().slice(0, 10);
 
-    setRecentPosts(recent);
-    setNoticePosts(notices);
-    setUpcomingSchedules(scheduleRes.schedules ?? []);
+      const scheduleRes = await authApiRequest<{ schedules: ScheduleDTO[] }>(
+        `/clubs/${clubIdNumber}/schedules?from=${from}&to=${to}&limit=3`,
+      );
 
-    // 🔹 멤버 상태 갱신 (우측 패널에 사용)
-    setMembers(membersRes.members ?? []);
-  } catch (e) {
-    console.error("대시보드 우측 패널 데이터 조회 실패", e);
-  } finally {
-    setRecentLoading(false);
-    setNoticeLoading(false);
-    setScheduleLoading(false);
-    setMembersLoading(false);
-  }
-};
+      setRecentPosts(recent);
+      setNoticePosts(notices);
+      setUpcomingSchedules(scheduleRes.schedules ?? []);
+    } catch (e) {
+      console.error("대시보드 우측 패널 데이터 조회 실패", e);
+    } finally {
+      setRecentLoading(false);
+      setNoticeLoading(false);
+      setScheduleLoading(false);
+    }
+  }, [clubIdNumber, joinStatus]);
 
-
+  // 처음 & joinStatus 변경 시 우측 패널 로딩
   useEffect(() => {
     fetchRightPanels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubIdNumber, joinStatus]);
+  }, [fetchRightPanels]);
 
   const handleJoin = async () => {
     if (!clubIdNumber || Number.isNaN(clubIdNumber)) return;
@@ -627,7 +599,14 @@ const fetchRightPanels = async () => {
           </p>
         )}
 
-        <div style={{ marginTop: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <div
+          style={{
+            marginTop: 16,
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
           {joinStatus === "not-joined" && (
             <button
               type="button"
@@ -654,7 +633,9 @@ const fetchRightPanels = async () => {
           )}
 
           {joinMessage && (
-            <span style={{ fontSize: 12, color: "#4b5563" }}>{joinMessage}</span>
+            <span style={{ fontSize: 12, color: "#4b5563" }}>
+              {joinMessage}
+            </span>
           )}
 
           {isLeaderOrAdmin && (
@@ -679,9 +660,8 @@ const fetchRightPanels = async () => {
         </div>
       </header>
 
-      {/* 메인 레이아웃 */}
       <div className="dashboard-content">
-        {/* 중앙 캘린더 */}
+        {/* 중앙: 캘린더 */}
         <section className="dashboard-calendar">
           <div
             className="panel-title"
@@ -713,16 +693,16 @@ const fetchRightPanels = async () => {
             )}
           </div>
 
-          <div className="calendar-box">
+          <div className="calendar-box" style={{ padding: 12 }}>
             <ClubScheduleCalendar
               clubId={clubIdNumber}
               canManage={canManageSchedules}
-              onChanged={fetchRightPanels}
+              onSchedulesChanged={fetchRightPanels}
             />
           </div>
         </section>
 
-        {/* 오른쪽 패널들 (공지 / 게시글 / 멤버 / 다가오는 일정) */}
+        {/* 오른쪽 패널 */}
         <aside className="dashboard-right">
           {/* 공지 */}
           <div className="right-card">
@@ -874,8 +854,10 @@ const fetchRightPanels = async () => {
                             marginTop: 2,
                           }}
                         >
-                          {new Date(post.createdAt).toLocaleDateString()} · 댓글{" "}
-                          {post.commentCount} · 조회 {post.viewCount}
+                          {new Date(
+                            post.createdAt,
+                          ).toLocaleDateString()} · 댓글 {post.commentCount} ·
+                          조회 {post.viewCount}
                         </div>
                       </button>
                     </li>
@@ -906,43 +888,8 @@ const fetchRightPanels = async () => {
           {/* 멤버 */}
           <div className="right-card">
             <div className="panel-title">멤버</div>
-              <div className="card-body">
-                {membersLoading && (
-                  <div style={{ fontSize: 12, color: "#9ca3af" }}>
-                    멤버를 불러오는 중...
-                  </div>
-                )}
-
-                {!membersLoading && members.length === 0 && (
-                  <div style={{ fontSize: 12, color: "#9ca3af" }}>
-                    아직 가입된 멤버가 없습니다.
-                  </div>
-                )}
-
-                {!membersLoading && members.length > 0 && (
-                  <ul
-                    style={{
-                      listStyle: "none",
-                      margin: 0,
-                      padding: 0,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 4,
-                    }}
-                  >
-                    {members.slice(0, 5).map((m) => (
-                      <li key={m.id}>
-                        <div style={{ fontSize: 13, fontWeight: 500 }}>
-                          {m.name}
-                        </div>
-                      <div style={{ fontSize: 11, color: "#9ca3af" }}>
-                        {m.role} · {m.tier} ·{" "}
-                        {new Date(m.joinedAt).toLocaleDateString()}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            <div className="card-body">
+              LEADER / WRITER / READER / tier 등
             </div>
           </div>
 
@@ -974,6 +921,7 @@ const fetchRightPanels = async () => {
                   {upcomingSchedules.map((s) => {
                     const start = new Date(s.startAt);
                     const end = new Date(s.endAt);
+
                     const same = start.toDateString() === end.toDateString();
 
                     const dateLabel = same

@@ -207,6 +207,37 @@ export class ClubController {
         .json({ message: e.message ?? "동아리를 생성하지 못했습니다." });
     }
   }
+  static async listMembers(req: AuthRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "로그인이 필요합니다." });
+      }
+
+      const clubId = Number(req.params.clubId);
+      if (Number.isNaN(clubId)) {
+        return res.status(400).json({ message: "잘못된 동아리 ID입니다." });
+      }
+
+      const members = await ClubService.listMembers(
+        clubId,
+        req.user.userId,
+      );
+
+      return res.json({ members });
+    } catch (e: any) {
+      if (
+        typeof e.message === "string" &&
+        e.message.includes("동아리의 승인된 멤버만")
+      ) {
+        return res.status(403).json({ message: e.message });
+      }
+
+      console.error(e);
+      return res
+        .status(400)
+        .json({ message: e.message ?? "멤버 목록 조회 중 오류가 발생했습니다." });
+    }
+  }
 }
 
 export default ClubController;

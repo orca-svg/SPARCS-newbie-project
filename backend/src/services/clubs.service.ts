@@ -1,5 +1,16 @@
 import { prisma } from "../prisma/client.ts";
 import type { Club, UserRole } from "@prisma/client";
+import { ClubMemberRole } from "@prisma/client";
+
+export interface ClubMemberDTO {
+  id: number;
+  userId: number;
+  name: string;
+  email: string | null;
+  role: "LEADER" | "WRITER" | "READER";
+  tier: "JUNIOR" | "SENIOR" | "MANAGER";
+  joinedAt: Date;
+}
 
 export class ClubService {
   // 1) 전체 동아리 목록
@@ -51,6 +62,19 @@ export class ClubService {
       return prisma.club.findUnique({
         where: { id },
       });
+    }
+    static async ensureApprovedMember(userId: number, clubId: number) {
+      const membership = await prisma.clubMember.findUnique({
+        where: {
+          userId_clubId: { userId, clubId },
+        },
+      });
+
+      if (!membership || !membership.approved) {
+        throw new Error("해당 동아리의 멤버만 접근할 수 있습니다.");
+      }
+
+      return membership;
     }
 
   // 0) 내부 helper: 리더 또는 ADMIN 인지 확인
@@ -220,8 +244,62 @@ static async createClub(input: { // 동아리 생성 -> 최초 생성 시 생성
 
     return club;
   }
+  static async ensureWriterOrLeader(userId: number, clubId: number) {
+    const membership = await prisma.clubMember.findFirst({
+      where: { userId, clubId, approved: true },
+    });
 
-  
+    if (!membership) {
+      throw new Error("동아리의 멤버만 사용할 수 있습니다.");
+    }
+
+    if (
+      membership.role !== ClubMemberRole.LEADER &&
+      membership.role !== ClubMemberRole.WRITER
+    ) {
+      throw new Error("일정 수정/삭제는 리더 또는 작성자만 가능합니다.");
+    }
+
+    return membership;
+  }
+
+  static async listMembers(
+    clubId: number,
+    requesterId: number,
+  ): Promise<ClubMemberDTO[]> {
+    // 조회하려는 사람도 승인된 멤버여야 보이도록
+    await this.ensureApprovedMember(requesterId, clubId);
+
+    const members = await prisma.clubMember.findMany({
+      where: {
+        clubId,
+        approved: true,
+      },
+      orderBy: [
+        { role: "asc" },      // (원하면 커스텀 정렬로 바꿔도 됨)
+        { createdAt: "asc" },
+      ],
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return members.map((m) => ({
+      id: m.id,
+      userId: m.userId,
+      name: m.user?.name ?? "이름 없음",
+      email: m.user?.email ?? null,
+      role: m.role,
+      tier: m.tier,
+      joinedAt: m.createdAt,
+    }));
+  }
 }
 
 export default ClubService;
