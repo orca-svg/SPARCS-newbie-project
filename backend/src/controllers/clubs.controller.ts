@@ -238,6 +238,53 @@ export class ClubController {
         .json({ message: e.message ?? "멤버 목록 조회 중 오류가 발생했습니다." });
     }
   }
+    // PATCH /api/clubs/:clubId/members/:memberId
+  static async updateMemberRoleTier(req: AuthRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "로그인이 필요합니다." });
+      }
+
+      const clubId = Number(req.params.clubId);
+      const memberId = Number(req.params.memberId);
+      if (Number.isNaN(clubId) || Number.isNaN(memberId)) {
+        return res
+          .status(400)
+          .json({ message: "유효하지 않은 파라미터입니다." });
+      }
+
+      const { role, tier } = req.body ?? {};
+
+      const updated = await ClubService.updateMemberRoleTier(
+        req.user.userId,   // 요청자
+        clubId,
+        memberId,
+        { role, tier },
+      );
+
+      return res.json({ member: updated });
+    } catch (e: any) {
+      return res.status(400).json({
+        message: e.message ?? "멤버 권한 변경에 실패했습니다.",
+      });
+    }
+  }
+
+  static async removeMember(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ message: "로그인이 필요합니다." });
+
+    const clubId = Number(req.params.clubId);
+    const memberId = Number(req.params.memberId);
+
+    const result = await ClubService.removeMember(req.user.userId, clubId, memberId);
+
+    return res.json(result);
+  } catch (e: any) {
+    return res.status(400).json({ message: e.message });
+  }
+  }
+
 }
 
 export default ClubController;

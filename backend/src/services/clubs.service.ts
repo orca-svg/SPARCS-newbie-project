@@ -1,16 +1,20 @@
 import { prisma } from "../prisma/client.ts";
 import type { Club, UserRole } from "@prisma/client";
-import { ClubMemberRole } from "@prisma/client";
+
+
+export type ClubMemberRole = "LEADER" | "WRITER" | "READER";
+export type ClubMemberTier = "JUNIOR" | "SENIOR" | "MANAGER";
 
 export interface ClubMemberDTO {
-  id: number;
+  id: number;     
   userId: number;
   name: string;
   email: string | null;
-  role: "LEADER" | "WRITER" | "READER";
-  tier: "JUNIOR" | "SENIOR" | "MANAGER";
+  role: ClubMemberRole;
+  tier: ClubMemberTier;
   joinedAt: Date;
 }
+
 
 export class ClubService {
   // 1) 전체 동아리 목록
@@ -254,8 +258,8 @@ static async createClub(input: { // 동아리 생성 -> 최초 생성 시 생성
     }
 
     if (
-      membership.role !== ClubMemberRole.LEADER &&
-      membership.role !== ClubMemberRole.WRITER
+      membership.role !== "LEADER" &&
+      membership.role !== "WRITER"
     ) {
       throw new Error("일정 수정/삭제는 리더 또는 작성자만 가능합니다.");
     }
@@ -300,6 +304,116 @@ static async createClub(input: { // 동아리 생성 -> 최초 생성 시 생성
       joinedAt: m.createdAt,
     }));
   }
+  // 멤버 관리 
+  static async ensureLeader(userId: number, clubId: number) {
+    const member = await prisma.clubMember.findFirst({
+      where: { userId, clubId, approved: true },
+    });
+
+    if (!member) {
+      throw new Error("동아리의 승인된 멤버만 접근할 수 있습니다.");
+    }
+    if (member.role !== "LEADER") {
+      throw new Error("멤버 권한 관리는 LEADER만 수행할 수 있습니다.");
+    }
+
+    return member;
+  }
+  static async getMemberDetail(
+    requesterId: number,
+    clubId: number,
+    memberId: number,
+  ): Promise<ClubMemberDTO> {
+    // 조회자: 승인 멤버 이상만 허용 (리더 아니어도 됨)
+    await this.ensureApprovedMember(requesterId, clubId);
+
+    const member = await prisma.clubMember.findFirst({
+      where: {
+        id: memberId,
+        clubId,
+        approved: true,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!member) {
+      throw new Error("해당 멤버를 찾을 수 없습니다.");
+    }
+
+    return {
+      id: member.id,
+      userId: member.userId,
+      name: member.user.name,
+      email: member.user.email ?? null,
+      role: member.role as ClubMemberRole,
+      tier: member.tier as ClubMemberTier,
+      joinedAt: member.createdAt,
+    };
+  }
+
+  /** 멤버 역할/티어 변경 – LEADER만 가능 */
+  static async updateMemberRoleTier(
+    requesterId: number,
+    clubId: number,
+    memberId: number,
+    data: { role?: ClubMemberRole; tier?: ClubMemberTier },
+  ): Promise<ClubMemberDTO> {
+    // 리더인지 확인
+    await this.ensureLeader(requesterId, clubId);
+
+    const member = await prisma.clubMember.findFirst({
+      where: { id: memberId, clubId, approved: true },
+      include: { user: true },
+    });
+
+    if (!member) {
+      throw new Error("해당 멤버를 찾을 수 없습니다.");
+    }
+
+    const updated = await prisma.clubMember.update({
+      where: { id: member.id },
+      data: {
+        role: data.role ?? member.role,
+        tier: data.tier ?? member.tier,
+      },
+      include: { user: true },
+    });
+
+    return {
+      id: updated.id,
+      userId: updated.userId,
+      name: updated.user.name,
+      email: updated.user.email ?? null,
+      role: updated.role as ClubMemberRole,
+      tier: updated.tier as ClubMemberTier,
+      joinedAt: updated.createdAt,
+    };
+  }
+
+  static async removeMember(
+  requesterId: number,
+  clubId: number,
+  memberId: number
+) {
+  await this.ensureLeader(requesterId, clubId);
+
+  const member = await prisma.clubMember.findFirst({
+    where: { id: memberId, clubId }
+  });
+
+  if (!member) throw new Error("해당 멤버를 찾을 수 없습니다.");
+  if (member.role === "LEADER")
+    throw new Error("리더는 내보낼 수 없습니다.");
+
+  await prisma.clubMember.delete({
+    where: { id: memberId }
+  });
+
+  return { success: true };
+}
+
 }
 
 export default ClubService;

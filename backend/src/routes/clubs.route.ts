@@ -76,5 +76,17 @@ router.get(
   ClubController.listMembers,
 )
 
+router.patch(
+  "/:clubId/members/:memberId",
+  authMiddleware,
+  ClubController.updateMemberRoleTier,
+);
+
+router.delete(
+  "/:clubId/members/:memberId",
+  authMiddleware,
+  ClubController.removeMember
+);
+
 
 export default router;

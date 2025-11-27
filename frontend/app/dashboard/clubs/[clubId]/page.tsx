@@ -656,26 +656,6 @@ const fetchRightPanels = async () => {
           {joinMessage && (
             <span style={{ fontSize: 12, color: "#4b5563" }}>{joinMessage}</span>
           )}
-
-          {isLeaderOrAdmin && (
-            <button
-              type="button"
-              onClick={() =>
-                router.push(`/dashboard/clubs/${clubIdNumber}/members`)
-              }
-              style={{
-                padding: "6px 12px",
-                borderRadius: 999,
-                border: "1px solid #888",
-                background: "#6b6b6bff",
-                color: "#fff",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              가입 요청 관리
-            </button>
-          )}
         </div>
       </header>
 
@@ -883,6 +863,8 @@ const fetchRightPanels = async () => {
                 </ul>
               )}
 
+          
+
               <button
                 type="button"
                 onClick={() =>
@@ -942,6 +924,28 @@ const fetchRightPanels = async () => {
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {joinStatus === "joined" && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(`/dashboard/clubs/${clubIdNumber}/members`)
+                  }
+                  style={{
+                    marginTop: 8,
+                    padding: "6px 10px",
+                    borderRadius: 999,
+                    border: "1px solid #0f172a",
+                    background: "#0f172a",
+                    color: "#fff",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    width: "100%",
+                  }}
+                >
+                  멤버 조회
+                </button>
               )}
             </div>
           </div>
