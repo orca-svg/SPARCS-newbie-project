@@ -36,7 +36,7 @@ export class PostController {
         page,
         pageSize,
         sort,
-        query: q.trim() || undefined,
+        ...(q.trim() ? { query: q.trim() } : {}),
         onlyNotice,
       },
     );

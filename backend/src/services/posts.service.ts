@@ -113,23 +113,21 @@ private static canSetNotice(role: ClubMemberRole, tier: MemberTier | null) {
   const onlyNotice = options?.onlyNotice ?? false;
 
   // 3) where 조건 (검색어 있으면 제목/내용 OR)
-  const where: import("@prisma/client").Prisma.PostWhereInput = {
-    clubId,
-    OR: q
-      ? [
-          {
-            title: {
-              contains: q,
-            },
-          },
-          {
-            content: {
-              contains: q,
-            },
-          },
-        ]
-      : undefined,
-  };
+  const where: import("@prisma/client").Prisma.PostWhereInput = { clubId };
+  if (q) {
+    where.OR = [
+      {
+        title: {
+          contains: q,
+        },
+      },
+      {
+        content: {
+          contains: q,
+        },
+      },
+    ];
+  }
 
   // 4) 정렬 조건
   const orderBy: import("@prisma/client").Prisma.PostOrderByWithRelationInput[] = [];
