@@ -218,7 +218,6 @@ export default function DashboardCalendarPage() {
         </div>
       )}
 
-      {/* 🔹 달력 전체 래퍼 (폭 고정 + 가운데 정렬) */}
       <div style={{ maxWidth: 980, margin: "8px auto 0" }}>
         {/* 상단 월 이동 컨트롤: 7열 그리드의 1열/7열에 버튼 배치 */}
         <div
@@ -229,7 +228,6 @@ export default function DashboardCalendarPage() {
             marginBottom: 4,
           }}
         >
-          {/* 1열: 이전 달 버튼 (일요일 위) */}
           <div>
             <button
               type="button"
@@ -247,7 +245,6 @@ export default function DashboardCalendarPage() {
             </button>
           </div>
 
-          {/* 2~6열: 가운데 월 텍스트 */}
           <div
             style={{
               gridColumn: "2 / span 5",
@@ -259,7 +256,6 @@ export default function DashboardCalendarPage() {
             {monthLabel}
           </div>
 
-          {/* 7열: 다음 달 버튼 (토요일 위) */}
           <div style={{ textAlign: "right" }}>
             <button
               type="button"
