@@ -241,6 +241,7 @@ export class ClubController {
     }
   }
     // PATCH /api/clubs/:clubId/members/:memberId
+// PATCH /api/clubs/:clubId/members/:memberId
   static async updateMemberRoleTier(req: AuthRequest, res: Response) {
     try {
       if (!req.user) {
@@ -253,8 +254,24 @@ export class ClubController {
         return res.status(400).json({ message: "잘못된 파라미터입니다." });
       }
 
-      const data = parseBody(updateMemberRoleTierSchema, req.body);
+      const body = parseBody(updateMemberRoleTierSchema, req.body);
+      // body.role: ClubMemberRole | undefined
+      // body.tier: ClubMemberTier | undefined
 
+      // 2) exactOptionalPropertyTypes 를 위해 undefined 를 제거해서 새 객체 생성
+      const data: {
+        role?: typeof body.role extends undefined ? never : typeof body.role;
+        tier?: typeof body.tier extends undefined ? never : typeof body.tier;
+      } = {};
+
+      if (body.role !== undefined) {
+        data.role = body.role;
+      }
+      if (body.tier !== undefined) {
+        data.tier = body.tier;
+      }
+
+      // 3) 서비스로 넘길 때는 이미 undefined 제거된 상태
       const updated = await ClubService.updateMemberRoleTier(
         req.user.userId,
         clubId,
@@ -262,11 +279,12 @@ export class ClubController {
         data,
       );
 
-      return res.json({ member: updated });
-    } catch (e: any) {
-      return res.status(400).json({ message: e.message });
-    }
+    return res.json({ member: updated });
+  } catch (e: any) {
+    return res.status(400).json({ message: e.message });
   }
+}
+
 
   static async removeMember(req: AuthRequest, res: Response) {
   try {

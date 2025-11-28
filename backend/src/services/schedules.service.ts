@@ -55,11 +55,14 @@ export default class ScheduleService {
       }
     }
 
-    const schedules = await prisma.schedule.findMany({
+    const query: Prisma.ScheduleFindManyArgs = {
       where,
       orderBy: { startAt: "asc" },
-      take: limit ?? undefined,
-    });
+    };
+    if (typeof limit === "number") {
+      query.take = limit;
+    }
+    const schedules = await prisma.schedule.findMany(query);
 
     return schedules.map((s) => ({
       id: s.id,

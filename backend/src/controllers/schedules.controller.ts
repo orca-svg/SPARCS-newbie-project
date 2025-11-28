@@ -61,10 +61,15 @@ export default class SchedulesController {
       }
 
       // 4) 서비스 호출
+      const options: Record<string, any> = {};
+      if (from !== undefined) options.from = from;
+      if (to !== undefined) options.to = to;
+      if (limit !== undefined) options.limit = limit;
+
       const schedules = await ScheduleService.listByClub(
         clubId,
         req.user.userId,
-        { from, to, limit },
+        options,
       );
 
       return res.json({ schedules });

@@ -36,6 +36,6 @@ export const createScheduleSchema = z.object({
 export const updateScheduleSchema = createScheduleSchema.partial();
 
 export const updateMemberRoleTierSchema = z.object({
-  role: z.enum(["LEADER", "WRITER", "READER"]).optional(),
-  tier: z.enum(["JUNIOR", "SENIOR", "MANAGER"]).optional(),
+  role: z.enum(["LEADER", "WRITER", "READER"]),
+  tier: z.enum(["JUNIOR", "SENIOR", "MANAGER"]),
 });

@@ -1,0 +1,12 @@
+import { Router } from "express";
+import postsRouter from "./posts.route.js";
+import authRouter from "./auth.route.js";
+import clubsRouter from "./clubs.route.js";
+import { AuthController } from "../controllers/auth.controller.js";
+import { authMiddleware } from "../middleware/auth.js";
+const router = Router();
+router.use("/", postsRouter);
+router.use("/auth", authRouter);
+router.use("/clubs", clubsRouter);
+router.get("/me", authMiddleware, AuthController.me);
+export default router;
