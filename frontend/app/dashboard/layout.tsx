@@ -47,7 +47,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="dashboard-root">
+      <div className="dashboard-root ">
         <div className="dashboard-main" style={{ padding: 40 }}>
           로딩 중...
         </div>
@@ -145,7 +145,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* 오른쪽 메인 영역 */}
-      <main className="dashboard-main">{children}</main>
+      <main className="dashboard-main hide-scrollbar">{children}</main>
     </div>
   );
 }

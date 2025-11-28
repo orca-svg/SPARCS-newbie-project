@@ -1,4 +1,4 @@
-/* 인증 페이지 공통 스타일 */
+/* auth 페이지*/
 .auth-page {
   min-height: 100vh;
   display: flex;
@@ -94,7 +94,15 @@
   display: flex;
   background: #f7f3e9;
 }
+/* 스크롤바 */
+.hide-scrollbar {
+  scrollbar-width: none;        
+  -ms-overflow-style: none;     
+}
 
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;                
+}
 /* 사이드바 */
 /* 전체 레이아웃 */
 .dashboard-root {
@@ -192,6 +200,8 @@
 .dashboard-main {
   flex: 1;
   padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* 내부 레이아웃 */
@@ -223,6 +233,8 @@
   background: #f8f2e5;
   max-height: 600px;     /* 원하는 높이로 조정 가능 */
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   padding: 8px;
 }
 
@@ -236,7 +248,7 @@
 .right-card {
   background: #fdfbf5;
   border-radius: 12px;
-  padding: 12px;
+  padding: 8px 10px 10px;
   min-height: 80px;
 }
 

@@ -458,7 +458,7 @@ const canSetNotice =
       </div>
 
       {/* 댓글 목록 */}
-      <ul style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <ul style={{ display: "flex", flexDirection: "column", gap: 8, listStyle: "none"}}>
         {comments.map((c) => (
           <li
             key={c.id}

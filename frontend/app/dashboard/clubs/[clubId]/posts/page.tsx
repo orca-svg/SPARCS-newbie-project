@@ -144,7 +144,7 @@ export default function ClubPostsPage() {
   }
 
   return (
-    <div className="dashboard-main" style={{ padding: 24 }}>
+    <div style={{ padding: 24 }}>
       {/* 상단 헤더 */}
       <div
         style={{
@@ -254,6 +254,7 @@ export default function ClubPostsPage() {
               style={{
                 width: "100%",
                 padding: 8,
+                boxSizing: "border-box",
                 borderRadius: 8,
                 border: "1px solid #d1d5db",
               }}
@@ -267,6 +268,7 @@ export default function ClubPostsPage() {
               rows={6}
               style={{
                 width: "100%",
+                boxSizing: "border-box",
                 padding: 8,
                 borderRadius: 8,
                 border: "1px solid #d1d5db",
@@ -343,7 +345,9 @@ export default function ClubPostsPage() {
       <ul
         style={{
           marginTop: 12,
+          padding: 0,
           display: "flex",
+          listStyle: "none",
           flexDirection: "column",
           gap: 6,
         }}

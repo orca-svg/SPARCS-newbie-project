@@ -80,7 +80,7 @@ export default class ScheduleService {
       title: string;
       startAt: Date;
       endAt: Date;
-      content?: string;
+      content?: string | null;
     },
   ): Promise<ScheduleDTO> {
     // 승인 멤버 여부 확인
@@ -157,7 +157,7 @@ export default class ScheduleService {
       title?: string;
       startAt?: Date;
       endAt?: Date;
-      content?: string;
+      content?: string | null;
     },
   ): Promise<ScheduleDTO> {
     const existing = await prisma.schedule.findUnique({

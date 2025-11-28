@@ -170,6 +170,7 @@ export default function ClubJoinRequestsPage() {
       <ul
         style={{
           marginTop: 16,
+          padding: 0,
           display: "flex",
           flexDirection: "column",
           gap: 8,

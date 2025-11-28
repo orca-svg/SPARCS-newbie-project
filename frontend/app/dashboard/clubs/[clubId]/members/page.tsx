@@ -492,40 +492,6 @@ export default function ClubMembersPage() {
                     </select>
                   </label>
 
-
-                  {/* TIER 선택 */}
-                  <label
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      marginBottom: 12,
-                      fontSize: 12,
-                    }}
-                  >
-                    티어 (TIER)
-                    <select
-                      value={m.tier}
-                      onChange={(e) => {
-                        const newTier = e.target.value as Tier;
-                        setMembers((prev) =>
-                          prev.map((x) =>
-                            x.id === m.id ? { ...x, tier: newTier } : x,
-                          ),
-                        );
-                      }}
-                      style={{
-                        marginTop: 4,
-                        padding: "6px 8px",
-                        borderRadius: 8,
-                        border: "1px solid #d1d5db",
-                      }}
-                    >
-                      <option value="JUNIOR">JUNIOR</option>
-                      <option value="SENIOR">SENIOR</option>
-                      <option value="MANAGER">MANAGER</option>
-                    </select>
-                  </label>
-
                   {/* 버튼 */}
                   <div style={{ display: "flex", gap: 8 }}>
                     <button

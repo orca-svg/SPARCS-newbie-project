@@ -338,7 +338,7 @@ function ClubScheduleCalendar({
                 key={`empty-${idx}`}
                 style={{
                   borderRadius: 8,
-                  minHeight: 60,
+                  minHeight: 48,
                   background: "#f9fafb",
                 }}
               />
@@ -347,11 +347,11 @@ function ClubScheduleCalendar({
 
           const dayStr = formatYMD(day);
 
-          // start ~ end 기간 중에 day가 포함되어 있는 일정도 표시하고 싶다면
-          // sameDay 대신 범위 체크로 바꿀 수 있음
-          const daySchedules = schedules.filter((s) =>
-            sameDay(s.startAt, dayStr),
-          );
+          const daySchedules = schedules.filter((s) => {
+            const startStr = s.startAt.slice(0, 10);
+            const endStr = s.endAt.slice(0, 10);
+            return startStr <= dayStr && dayStr <= endStr;
+        });
 
           return (
             <div
@@ -362,7 +362,7 @@ function ClubScheduleCalendar({
                 borderRadius: 8,
                 border: "1px solid #e5e7eb",
                 padding: 4,
-                minHeight: 70,
+                minHeight: 60,
                 display: "flex",
                 flexDirection: "column",
                 gap: 2,
@@ -617,7 +617,7 @@ const fetchRightPanels = async () => {
   }
 
   return (
-    <div className="dashboard-main" style={{ padding: 24 }}>
+    <div className="dashboard-main hide-scrollbar" style={{ padding: 24 }}>
       {/* 상단: 동아리 기본 정보 + 가입/관리 버튼 */}
       <header style={{ marginBottom: 24 }}>
         <h1 className="page-title">{club.name}</h1>
@@ -792,98 +792,110 @@ const fetchRightPanels = async () => {
           </div>
 
           {/* 게시글 */}
-          <div className="right-card">
-            <div className="panel-title">게시글</div>
-            <div className="card-body">
-              {recentLoading && (
-                <div style={{ fontSize: 12, color: "#9ca3af" }}>
-                  게시글을 불러오는 중...
-                </div>
-              )}
+        <div className="right-card">
+          <div
+            className="panel-title"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <span>게시글</span>
 
-              {!recentLoading && recentPosts.length === 0 && (
-                <div style={{ fontSize: 12, color: "#9ca3af" }}>
-                  아직 게시글이 없습니다.
-                </div>
-              )}
+            <button
+              type="button"
+              onClick={() =>
+                router.push(`/dashboard/clubs/${clubIdNumber}/posts`)
+              }
+              style={{
+                padding: "5px 10px",
+                borderRadius: 999,
+                border: "1px solid #0f172a",
+                background: "#0f172a",
+                color: "#fff",
+                fontSize: 12,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              게시판 열기 / 새 글 작성
+            </button>
+          </div>
 
-              {!recentLoading && recentPosts.length > 0 && (
-                <ul
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                    marginBottom: 8,
-                    listStyle: "none",
-                  }}
-                >
-                  {recentPosts.map((post) => (
-                    <li key={post.id}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          router.push(
-                            `/dashboard/clubs/${clubIdNumber}/posts/${post.id}`,
-                          )
-                        }
-                        style={{
-                          width: "100%",
-                          textAlign: "left",
-                          fontSize: 13,
-                          padding: "4px 6px",
-                          borderRadius: 8,
-                          border: "none",
-                          background: "transparent",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontWeight: 500,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {post.title}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: "#9ca3af",
-                            marginTop: 2,
-                          }}
-                        >
-                          {new Date(post.createdAt).toLocaleDateString()} · 댓글{" "}
-                          {post.commentCount} · 조회 {post.viewCount}
-                        </div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+          <div className="card-body">
+            {recentLoading && (
+              <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                게시글을 불러오는 중...
+              </div>
+            )}
 
-          
+            {!recentLoading && recentPosts.length === 0 && (
+              <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                아직 게시글이 없습니다.
+              </div>
+            )}
 
-              <button
-                type="button"
-                onClick={() =>
-                  router.push(`/dashboard/clubs/${clubIdNumber}/posts`)
-                }
+            {!recentLoading && recentPosts.length > 0 && (
+              <ul
                 style={{
-                  padding: "6px 10px",
-                  borderRadius: 999,
-                  border: "1px solid #0f172a",
-                  background: "#0f172a",
-                  color: "#fff",
-                  fontSize: 12,
-                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  marginBottom: 0,
+                  listStyle: "none",
+                  padding: 0,
                 }}
               >
-                게시판 열기 / 새 글 작성
-              </button>
-            </div>
+                {recentPosts.map((post) => (
+                  <li key={post.id}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          `/dashboard/clubs/${clubIdNumber}/posts/${post.id}`,
+                        )
+                      }
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        fontSize: 13,
+                        padding: "4px 6px",
+                        borderRadius: 8,
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 500,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {post.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "#9ca3af",
+                          marginTop: 2,
+                        }}
+                      >
+                        {new Date(post.createdAt).toLocaleDateString()} · 댓글{" "}
+                        {post.commentCount} · 조회 {post.viewCount}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
+        </div>
+
 
           {/* 멤버 */}
           <div className="right-card">

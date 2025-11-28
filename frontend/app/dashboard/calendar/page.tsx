@@ -53,10 +53,6 @@ function formatYMD(date: Date) {
   return date.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-function sameDay(a: string, b: string) {
-  return a.slice(0, 10) === b.slice(0, 10);
-}
-
 export default function DashboardCalendarPage() {
   const { user } = useAuth({ required: true });
   const router = useRouter();
@@ -222,190 +218,213 @@ export default function DashboardCalendarPage() {
         </div>
       )}
 
-      {/* 상단 월 이동 컨트롤 */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 8,
-        }}
-      >
-        <button
-          type="button"
-          onClick={handlePrevMonth}
+      {/* 🔹 달력 전체 래퍼 (폭 고정 + 가운데 정렬) */}
+      <div style={{ maxWidth: 980, margin: "8px auto 0" }}>
+        {/* 상단 월 이동 컨트롤: 7열 그리드의 1열/7열에 버튼 배치 */}
+        <div
           style={{
-            padding: "4px 8px",
-            borderRadius: 999,
-            border: "1px solid #e5e7eb",
-            background: "#f9fafb",
-            fontSize: 12,
-            cursor: "pointer",
+            display: "grid",
+            gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+            alignItems: "center",
+            marginBottom: 4,
           }}
         >
-          ◀ 이전 달
-        </button>
-        <div style={{ fontWeight: 600, fontSize: 14 }}>{monthLabel}</div>
-        <button
-          type="button"
-          onClick={handleNextMonth}
-          style={{
-            padding: "4px 8px",
-            borderRadius: 999,
-            border: "1px solid #e5e7eb",
-            background: "#f9fafb",
-            fontSize: 12,
-            cursor: "pointer",
-          }}
-        >
-          다음 달 ▶
-        </button>
-      </div>
-
-      {loading && (
-        <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>
-          일정을 불러오는 중...
-        </div>
-      )}
-      {errorMsg && (
-        <div style={{ fontSize: 12, color: "#ef4444", marginBottom: 4 }}>
-          {errorMsg}
-        </div>
-      )}
-
-      {clubs.length === 0 && !loading && !errorMsg && (
-        <div style={{ fontSize: 13, color: "#6b7280", marginTop: 8 }}>
-          가입된 동아리가 없어 표시할 일정이 없습니다.
-        </div>
-      )}
-
-      {/* 요일 헤더 */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-          gap: 2,
-          marginBottom: 4,
-          fontSize: 11,
-          color: "#6b7280",
-          textAlign: "center",
-        }}
-      >
-        {["일", "월", "화", "수", "목", "금", "토"].map((w) => (
-          <div key={w}>{w}</div>
-        ))}
-      </div>
-
-      {/* 날짜 그리드 */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-          gap: 4,
-        }}
-      >
-        {cells.map((day, idx) => {
-          if (!day) {
-            return (
-              <div
-                key={`empty-${idx}`}
-                style={{
-                  borderRadius: 8,
-                  minHeight: 60,
-                  background: "#f9fafb",
-                }}
-              />
-            );
-          }
-
-          const dayStr = formatYMD(day);
-
-          const daySchedules = schedules.filter((s) =>
-            sameDay(s.startAt, dayStr),
-          );
-
-          return (
-            <div
-              key={dayStr}
+          {/* 1열: 이전 달 버튼 (일요일 위) */}
+          <div>
+            <button
+              type="button"
+              onClick={handlePrevMonth}
               style={{
-                borderRadius: 8,
+                padding: "4px 8px",
+                borderRadius: 999,
                 border: "1px solid #e5e7eb",
-                padding: 4,
-                minHeight: 70,
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-                background: "#ffffff",
+                background: "#f9fafb",
+                fontSize: 12,
+                cursor: "pointer",
               }}
             >
+              ◀ 이전 달
+            </button>
+          </div>
+
+          {/* 2~6열: 가운데 월 텍스트 */}
+          <div
+            style={{
+              gridColumn: "2 / span 5",
+              textAlign: "center",
+              fontWeight: 600,
+              fontSize: 14,
+            }}
+          >
+            {monthLabel}
+          </div>
+
+          {/* 7열: 다음 달 버튼 (토요일 위) */}
+          <div style={{ textAlign: "right" }}>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              style={{
+                padding: "4px 8px",
+                borderRadius: 999,
+                border: "1px solid #e5e7eb",
+                background: "#f9fafb",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              다음 달 ▶
+            </button>
+          </div>
+        </div>
+
+        {loading && (
+          <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>
+            일정을 불러오는 중...
+          </div>
+        )}
+        {errorMsg && (
+          <div style={{ fontSize: 12, color: "#ef4444", marginBottom: 4 }}>
+            {errorMsg}
+          </div>
+        )}
+
+        {clubs.length === 0 && !loading && !errorMsg && (
+          <div style={{ fontSize: 13, color: "#6b7280", marginTop: 8 }}>
+            가입된 동아리가 없어 표시할 일정이 없습니다.
+          </div>
+        )}
+
+        {/* 요일 헤더 */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+            gap: 2,
+            marginBottom: 4,
+            fontSize: 11,
+            color: "#6b7280",
+            textAlign: "center",
+          }}
+        >
+          {["일", "월", "화", "수", "목", "금", "토"].map((w) => (
+            <div key={w}>{w}</div>
+          ))}
+        </div>
+
+        {/* 날짜 그리드 */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+            gap: 4,
+          }}
+        >
+          {cells.map((day, idx) => {
+            if (!day) {
+              return (
+                <div
+                  key={`empty-${idx}`}
+                  style={{
+                    borderRadius: 8,
+                    minHeight: 60,
+                    background: "#f9fafb",
+                  }}
+                />
+              );
+            }
+
+            const dayStr = formatYMD(day);
+
+            const daySchedules = schedules.filter((s) => {
+              const startStr = s.startAt.slice(0, 10);
+              const endStr = s.endAt.slice(0, 10);
+              return startStr <= dayStr && dayStr <= endStr;
+            });
+
+            return (
               <div
+                key={dayStr}
                 style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  marginBottom: 2,
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb",
+                  padding: 4,
+                  minHeight: 90,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  background: "#ffffff",
                 }}
               >
-                {day.getDate()}
-              </div>
-
-              {daySchedules.slice(0, 3).map((s) => {
-                const color = clubColorMap[s.clubId] ?? TAG_COLORS[0];
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() =>
-                      router.push(`/dashboard/clubs/${s.clubId}`)
-                    }
-                    className="schedule-chip"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      width: "100%",
-                      borderRadius: 999,
-                      border: `1px solid ${color.border}`,
-                      background: color.bg,
-                      color: color.text,
-                      padding: "2px 6px",
-                      fontSize: 11,
-                      cursor: "pointer",
-                    }}
-                    title={`${s.clubName} · ${s.title}`}
-                  >
-                    <span
-                      style={{
-                        fontSize: 10,
-                        padding: "1px 4px",
-                        borderRadius: 999,
-                        background: "#ffffffaa",
-                        color: color.text,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {s.clubName}
-                    </span>
-                    <span
-                      style={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {s.title}
-                    </span>
-                  </button>
-                );
-              })}
-
-              {daySchedules.length > 3 && (
-                <div style={{ fontSize: 10, color: "#6b7280" }}>
-                  +{daySchedules.length - 3}개 더
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    marginBottom: 2,
+                  }}
+                >
+                  {day.getDate()}
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {daySchedules.slice(0, 3).map((s) => {
+                  const color = clubColorMap[s.clubId] ?? TAG_COLORS[0];
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() =>
+                        router.push(`/dashboard/clubs/${s.clubId}`)
+                      }
+                      className="schedule-chip"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        width: "100%",
+                        borderRadius: 999,
+                        border: `1px solid ${color.border}`,
+                        background: color.bg,
+                        color: color.text,
+                        padding: "2px 6px",
+                        fontSize: 11,
+                        cursor: "pointer",
+                      }}
+                      title={`${s.clubName} · ${s.title}`}
+                    >
+                      <span
+                        style={{
+                          fontSize: 10,
+                          padding: "1px 4px",
+                          borderRadius: 999,
+                          background: "#ffffffaa",
+                          color: color.text,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {s.clubName}
+                      </span>
+                      <span
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {s.title}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {daySchedules.length > 3 && (
+                  <div style={{ fontSize: 10, color: "#6b7280" }}>
+                    +{daySchedules.length - 3}개 더
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,9 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.ts";
 import ScheduleService from "../services/schedules.service.ts";
+import { createScheduleSchema, updateScheduleSchema,} from "../validation/schemas.ts";
+import { parseBody } from "../validation/parse.ts";
+
 
 export default class SchedulesController {
   static async listByClub(req: AuthRequest, res: Response) {
@@ -66,7 +69,6 @@ export default class SchedulesController {
 
       return res.json({ schedules });
     } catch (e: any) {
-      // 권한 관련 메시지는 403으로 매핑
       if (
         typeof e.message === "string" &&
         e.message.includes("동아리의 멤버만")
@@ -97,64 +99,37 @@ static async create(req: AuthRequest, res: Response) {
         .json({ message: "잘못된 동아리 ID입니다." });
     }
 
-    const { title, startAt, endAt, content } = req.body as {
-      title?: string;
-      startAt?: string;
-      endAt?: string;
-      content?: string;
-    };
-
-    if (!title || !startAt || !endAt) {
-      return res
-        .status(400)
-        .json({ message: "제목, 시작일, 종료일은 필수입니다." });
-    }
-
-    const startDate = new Date(startAt);
-    const endDate = new Date(endAt);
-
-    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-      return res
-        .status(400)
-        .json({ message: "날짜 형식이 올바르지 않습니다." });
-    }
-
-    if (endDate < startDate) {
-      return res
-        .status(400)
-        .json({ message: "종료일은 시작일 이후여야 합니다." });
-    }
+    const parsed = parseBody(createScheduleSchema, req.body);
 
     const schedule = await ScheduleService.createSchedule(
-        clubId,
-        req.user.userId,
-        {
-          title,
-          startAt: startDate,
-          endAt: endDate,
-          content,
-        },
-      );
+      clubId,
+      req.user.userId,
+      {
+        title: parsed.title,
+        startAt: new Date(parsed.startAt),
+        endAt: new Date(parsed.endAt),
+        content: parsed.content ?? null,
+      },
+    );
 
-      return res.status(201).json({ schedule });
-    } catch (e: any) {
-      if (
-        typeof e.message === "string" &&
-        (
-          e.message.includes("동아리의 멤버만") ||
-          e.message.includes("WRITER 또는 LEADER만")
-        )
-      ) {
-        // 🔹 권한 관련 에러는 403
-        return res.status(403).json({ message: e.message });
-      }
-
-      console.error(e);
-      return res
-        .status(400)
-        .json({ message: e.message ?? "일정 생성 중 오류가 발생했습니다." });
+    return res.status(201).json({ schedule });
+  } catch (e: any) {
+    if (
+      typeof e.message === "string" &&
+      (
+        e.message.includes("동아리의 멤버만") ||
+        e.message.includes("WRITER") ||
+        e.message.includes("LEADER")
+      )
+    ) {
+      return res.status(403).json({ message: e.message });
     }
+
+    return res
+      .status(400)
+      .json({ message: e.message ?? "일정 생성 중 오류가 발생했습니다." });
   }
+}
 
   // 일정 수정
   static async update(req: AuthRequest, res: Response) {
@@ -172,48 +147,26 @@ static async create(req: AuthRequest, res: Response) {
           .json({ message: "잘못된 동아리 또는 일정 ID입니다." });
       }
 
-      const { title, startAt, endAt, content } = req.body as {
-        title?: string;
-        startAt?: string;
-        endAt?: string;
-        content?: string;
-      };
+      const parsed = parseBody(updateScheduleSchema, req.body);
 
-      const data: {
+      const patchData: {
         title?: string;
         startAt?: Date;
         endAt?: Date;
-        content?: string;
+        content?: string | null;
       } = {};
 
-      if (title !== undefined) data.title = title;
-      if (content !== undefined) data.content = content;
-      if (startAt) {
-        const d = new Date(startAt);
-        if (Number.isNaN(d.getTime())) {
-          return res
-            .status(400)
-            .json({ message: "startAt 날짜 형식이 올바르지 않습니다." });
-        }
-        data.startAt = d;
-      }
-      if (endAt) {
-        const d = new Date(endAt);
-        if (Number.isNaN(d.getTime())) {
-          return res
-            .status(400)
-            .json({ message: "endAt 날짜 형식이 올바르지 않습니다." });
-        }
-        data.endAt = d;
-      }
+      if (parsed.title !== undefined) patchData.title = parsed.title;
+      if (parsed.content !== undefined) patchData.content = parsed.content;
+      if (parsed.startAt) patchData.startAt = new Date(parsed.startAt);
+      if (parsed.endAt) patchData.endAt = new Date(parsed.endAt);
 
       const updated = await ScheduleService.updateSchedule(
         scheduleId,
         req.user.userId,
-        data,
+        patchData,
       );
 
-      // clubId가 맞는지 간단히 체크 (틀리면 400)
       if (updated.clubId !== clubId) {
         return res
           .status(400)
@@ -225,12 +178,12 @@ static async create(req: AuthRequest, res: Response) {
       if (
         typeof e.message === "string" &&
         (e.message.includes("동아리의 멤버만") ||
-          e.message.includes("리더 또는 작성자만"))
+          e.message.includes("리더") ||
+          e.message.includes("작성자"))
       ) {
         return res.status(403).json({ message: e.message });
       }
 
-      console.error(e);
       return res
         .status(400)
         .json({ message: e.message ?? "일정 수정 중 오류가 발생했습니다." });
